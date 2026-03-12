@@ -6,13 +6,13 @@ import {
   FlaskConical, ChevronRight, X, Download, Share2,
   Upload, Star, BookOpen, MapPin, ExternalLink, Filter,
   Calendar, MoreHorizontal, Building2, Shield, Zap,
-  Brain, Sparkles, Database, Stethoscope, Send
+  Brain, Sparkles, Database, Stethoscope, Send, UserSearch, TrendingUp, TrendingDown, Minus
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Screen = "ask" | "overview" | "studies" | "analytics" | "explorer" | "drafter" | "kol" | "team";
+type Screen = "ask" | "overview" | "studies" | "analytics" | "recruitment" | "explorer" | "drafter" | "kol" | "team";
 
 const studies = [
   { id: "MERI-2024-001", title: "Pembrolizumab + Chemo in NSCLC", phase: "Phase II", indication: "Oncology", sites: 8, enrolled: 124, target: 200, status: "On Track", months: 14, countries: 4, team: ["SC","RK","JP","AM"] },
@@ -88,6 +88,7 @@ function Sidebar({ active, onNav }: { active: Screen; onNav: (s: Screen) => void
           <p className="text-xs font-semibold text-white/25 uppercase tracking-widest">Intelligence</p>
         </div>
         {navItem("analytics", Activity, "Protocol Analytics")}
+        {navItem("recruitment", UserSearch, "Patient Recruitment")}
         {navItem("explorer", Search, "Trial Explorer")}
         {navItem("drafter", FileText, "Protocol Drafter")}
         {navItem("kol", Users, "KOL Intelligence")}
@@ -924,6 +925,238 @@ function TeamScreen() {
   );
 }
 
+function PatientRecruitmentScreen({ onNav }: { onNav: (s: Screen) => void }) {
+  const [activeStudy, setActiveStudy] = useState("MERI-2023-047");
+
+  const studyOptions = [
+    { id: "MERI-2023-047", label: "BRD4-i · HR+ Breast Cancer" },
+    { id: "MERI-2024-001", label: "Pembrolizumab · NSCLC" },
+    { id: "MERI-2024-089", label: "IL-23i · Crohn's" },
+    { id: "MERI-2025-002", label: "CAR-T · AML" },
+    { id: "MERI-2025-011", label: "MEK-i · Melanoma" },
+  ];
+
+  const funnelData = {
+    "MERI-2023-047": { eligible: 4820, screened: 2140, consented: 1240, enrolled: 891, active: 798, dropout: 93 },
+    "MERI-2024-001": { eligible: 1640, screened: 580, consented: 198, enrolled: 124, active: 119, dropout: 5 },
+    "MERI-2024-089": { eligible: 890, screened: 412, consented: 261, enrolled: 203, active: 197, dropout: 6 },
+    "MERI-2025-002": { eligible: 210, screened: 48, consented: 18, enrolled: 12, active: 12, dropout: 0 },
+    "MERI-2025-011": { eligible: 380, screened: 62, consented: 9, enrolled: 4, active: 4, dropout: 0 },
+  };
+
+  const siteData = {
+    "MERI-2023-047": [
+      { name: "MD Anderson Cancer Center", country: "US", target: 120, enrolled: 118, rate: 4.2, trend: "up", screen_fail: "18%" },
+      { name: "Memorial Sloan Kettering", country: "US", target: 100, enrolled: 94, rate: 3.8, trend: "up", screen_fail: "22%" },
+      { name: "Institut Gustave Roussy", country: "FR", target: 80, enrolled: 71, rate: 3.1, trend: "flat", screen_fail: "25%" },
+      { name: "Charité Berlin", country: "DE", target: 70, enrolled: 58, rate: 2.2, trend: "down", screen_fail: "31%" },
+      { name: "Christie NHS Foundation", country: "UK", target: 60, enrolled: 52, rate: 2.0, trend: "down", screen_fail: "34%" },
+      { name: "University of Toronto", country: "CA", target: 50, enrolled: 41, rate: 1.8, trend: "flat", screen_fail: "28%" },
+    ],
+    "MERI-2024-001": [
+      { name: "Johns Hopkins", country: "US", target: 40, enrolled: 28, rate: 2.1, trend: "up", screen_fail: "20%" },
+      { name: "Mayo Clinic Rochester", country: "US", target: 35, enrolled: 24, rate: 1.9, trend: "up", screen_fail: "23%" },
+      { name: "University College London", country: "UK", target: 30, enrolled: 18, rate: 1.4, trend: "flat", screen_fail: "28%" },
+    ],
+    "MERI-2024-089": [
+      { name: "Cleveland Clinic", country: "US", target: 60, enrolled: 55, rate: 3.2, trend: "up", screen_fail: "15%" },
+      { name: "Mount Sinai", country: "US", target: 50, enrolled: 48, rate: 2.9, trend: "up", screen_fail: "18%" },
+      { name: "Karolinska Institute", country: "SE", target: 50, enrolled: 41, rate: 2.4, trend: "flat", screen_fail: "22%" },
+    ],
+    "MERI-2025-002": [
+      { name: "Dana-Farber Cancer Institute", country: "US", target: 15, enrolled: 7, rate: 0.8, trend: "up", screen_fail: "42%" },
+      { name: "Fred Hutchinson", country: "US", target: 15, enrolled: 5, rate: 0.6, trend: "flat", screen_fail: "48%" },
+    ],
+    "MERI-2025-011": [
+      { name: "UCLA Medical Center", country: "US", target: 30, enrolled: 4, rate: 0.4, trend: "up", screen_fail: "55%" },
+    ],
+  };
+
+  const channels = [
+    { name: "Physician Referral Network", patients: 412, pct: 46, color: "bg-[#0EA5E9]" },
+    { name: "Patient Registry (BreastCancer.org)", patients: 198, pct: 22, color: "bg-violet-400" },
+    { name: "Digital Campaign (Facebook/Google)", patients: 143, pct: 16, color: "bg-emerald-400" },
+    { name: "EMR Screening (Epic)", patients: 89, pct: 10, color: "bg-amber-400" },
+    { name: "Site Walk-ins & Other", patients: 49, pct: 6, color: "bg-slate-300" },
+  ];
+
+  const f = funnelData[activeStudy as keyof typeof funnelData];
+  const sites = siteData[activeStudy as keyof typeof siteData];
+  const maxFunnel = f.eligible;
+
+  const trendIcon = (t: string) =>
+    t === "up" ? <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> :
+    t === "down" ? <TrendingDown className="w-3.5 h-3.5 text-red-500" /> :
+    <Minus className="w-3.5 h-3.5 text-slate-400" />;
+
+  const dropoutRate = f.dropout > 0 ? ((f.dropout / f.enrolled) * 100).toFixed(1) : "0.0";
+  const screenFailRate = (((f.screened - f.consented) / f.screened) * 100).toFixed(0);
+  const conversionRate = ((f.enrolled / f.screened) * 100).toFixed(1);
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-slate-50 p-6">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Patient Recruitment</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Enrollment funnel · Site performance · Recruitment channels</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-white rounded-lg border border-slate-200 p-1 flex-wrap">
+            {studyOptions.map(s => (
+              <button key={s.id} onClick={() => setActiveStudy(s.id)} className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${activeStudy === s.id ? "bg-[#0EA5E9] text-white" : "text-slate-500 hover:text-slate-800"}`}>{s.id}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-4 mb-5">
+        {[
+          { label: "Screened", value: f.screened.toLocaleString(), sub: `of ${f.eligible.toLocaleString()} eligible`, Icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "Screen-to-Enroll", value: `${conversionRate}%`, sub: "conversion rate", Icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
+          { label: "Screen Failure", value: `${screenFailRate}%`, sub: "not proceeding to consent", Icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50" },
+          { label: "Dropout Rate", value: `${dropoutRate}%`, sub: `${f.dropout} patients post-enrollment`, Icon: TrendingDown, color: "text-red-600", bg: "bg-red-50" },
+        ].map(kpi => (
+          <div key={kpi.label} className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex items-start justify-between mb-3">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{kpi.label}</p>
+              <div className={`w-8 h-8 rounded-lg ${kpi.bg} flex items-center justify-center`}>
+                <kpi.Icon className={`w-4 h-4 ${kpi.color}`} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">{kpi.value}</p>
+            <p className="text-xs text-slate-500 mt-1">{kpi.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-3 gap-5 mb-5">
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <h3 className="text-sm font-semibold text-slate-800 mb-4">Enrollment Funnel</h3>
+          <div className="space-y-3">
+            {[
+              { label: "Potentially Eligible", value: f.eligible, color: "bg-slate-200" },
+              { label: "Screened", value: f.screened, color: "bg-blue-300" },
+              { label: "Consented", value: f.consented, color: "bg-blue-400" },
+              { label: "Enrolled", value: f.enrolled, color: "bg-[#0EA5E9]" },
+              { label: "Currently Active", value: f.active, color: "bg-emerald-500" },
+            ].map((step, i) => (
+              <div key={i}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-slate-600 font-medium">{step.label}</span>
+                  <span className="font-semibold text-slate-800">{step.value.toLocaleString()}</span>
+                </div>
+                <div className="h-6 bg-slate-50 rounded-lg overflow-hidden border border-slate-100">
+                  <div className={`h-full ${step.color} rounded-lg transition-all`} style={{ width: `${(step.value / maxFunnel) * 100}%` }}></div>
+                </div>
+                {i < 4 && (
+                  <div className="text-right text-xs text-slate-400 mt-0.5">
+                    ↓ {(((step.value - [f.screened, f.consented, f.enrolled, f.active, 0][i]) / step.value) * 100).toFixed(0)}% lost
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="col-span-2 bg-white rounded-xl border border-slate-200">
+          <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-slate-800">Site Performance</h3>
+            <Badge variant="outline" className="text-xs">{sites.length} active sites</Badge>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-slate-400 font-medium uppercase tracking-wide border-b border-slate-100">
+                <th className="text-left px-5 py-2">Site</th>
+                <th className="text-left px-3 py-2">Country</th>
+                <th className="text-left px-3 py-2">Enrolled</th>
+                <th className="text-left px-3 py-2">Rate/mo</th>
+                <th className="text-left px-3 py-2">Screen Fail</th>
+                <th className="text-left px-3 py-2">Trend</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {sites.map((site, i) => (
+                <tr key={i} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-5 py-2.5">
+                    <p className="font-medium text-slate-800 text-xs">{site.name}</p>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs text-slate-500">{site.country}</td>
+                  <td className="px-3 py-2.5">
+                    <div>
+                      <div className="flex justify-between text-xs mb-0.5">
+                        <span className="font-semibold text-slate-800">{site.enrolled}</span>
+                        <span className="text-slate-400">/{site.target}</span>
+                      </div>
+                      <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${site.enrolled / site.target >= 0.9 ? "bg-emerald-500" : site.enrolled / site.target >= 0.7 ? "bg-[#0EA5E9]" : "bg-amber-400"}`} style={{ width: `${Math.min((site.enrolled / site.target) * 100, 100)}%` }}></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5 text-xs font-semibold text-slate-700">{site.rate}/mo</td>
+                  <td className="px-3 py-2.5">
+                    <span className={`text-xs font-medium ${parseFloat(site.screen_fail) > 30 ? "text-red-600" : parseFloat(site.screen_fail) > 22 ? "text-amber-600" : "text-emerald-600"}`}>{site.screen_fail}</span>
+                  </td>
+                  <td className="px-3 py-2.5">{trendIcon(site.trend)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-5">
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-slate-800">Recruitment Channels</h3>
+            <span className="text-xs text-slate-400">MERI-2023-047</span>
+          </div>
+          <div className="space-y-3">
+            {channels.map((c, i) => (
+              <div key={i}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-slate-600">{c.name}</span>
+                  <span className="font-semibold text-slate-800">{c.patients} <span className="text-slate-400 font-normal">({c.pct}%)</span></span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className={`h-full ${c.color} rounded-full`} style={{ width: `${c.pct}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-100">
+            <Button size="sm" variant="outline" className="text-xs w-full">Manage Recruitment Channels</Button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#0EA5E9]" />
+            AI Recruitment Insights
+          </h3>
+          <div className="space-y-3">
+            {[
+              { type: "alert", icon: AlertTriangle, color: "text-amber-500 bg-amber-50 border-amber-100", text: "Charité Berlin and Christie NHS sites have screen failure rates above 30% — eligibility criteria review recommended for EU/UK cohort." },
+              { type: "opportunity", icon: TrendingUp, color: "text-emerald-600 bg-emerald-50 border-emerald-100", text: "Epic EMR integration at MD Anderson could yield ~40 additional pre-screened patients based on ICD-10 code matching." },
+              { type: "forecast", icon: Globe, color: "text-blue-600 bg-blue-50 border-blue-100", text: "At current pace MERI-2023-047 will reach full enrollment in ~5.4 weeks. Final enrollment event projected for April 20, 2026." },
+            ].map((insight, i) => (
+              <div key={i} className={`rounded-lg p-3 border text-xs ${insight.color}`}>
+                <div className="flex items-start gap-2">
+                  <insight.icon className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                  <p className="text-slate-700 leading-relaxed">{insight.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+            <Button size="sm" className="text-xs flex-1 bg-[#0EA5E9] hover:bg-[#0284C7] text-white" onClick={() => onNav("kol")}>Find KOLs for Referrals</Button>
+            <Button size="sm" variant="outline" className="text-xs flex-1">Export Recruitment Report</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AskHakaseScreen({ onNav }: { onNav: (s: Screen) => void }) {
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState<string | null>(null);
@@ -1003,6 +1236,17 @@ function AskHakaseScreen({ onNav }: { onNav: (s: Screen) => void }) {
       iconBg: "bg-slate-50",
       iconColor: "text-slate-500",
       action: () => onNav("explorer"),
+    },
+    {
+      Icon: UserSearch,
+      tag: "RECRUITMENT",
+      tagColor: "text-teal-600 bg-teal-50",
+      title: "Patient Recruitment",
+      desc: "Tracks enrollment funnels, site performance, and optimises recruitment channels per study.",
+      color: "border-teal-100 hover:border-teal-300",
+      iconBg: "bg-teal-50",
+      iconColor: "text-teal-500",
+      action: () => onNav("recruitment"),
     },
   ];
 
@@ -1141,6 +1385,7 @@ export default function Dashboard() {
           {screen === "overview" && <OverviewScreen onNav={setScreen} />}
           {screen === "studies" && <StudiesScreen onNav={setScreen} />}
           {screen === "analytics" && <AnalyticsScreen />}
+          {screen === "recruitment" && <PatientRecruitmentScreen onNav={setScreen} />}
           {screen === "explorer" && <ExplorerScreen />}
           {screen === "drafter" && <DrafterScreen />}
           {screen === "kol" && <KOLScreen />}
