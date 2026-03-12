@@ -88,9 +88,9 @@ function Sidebar({ active, onNav }: { active: Screen; onNav: (s: Screen) => void
           <p className="text-xs font-semibold text-white/25 uppercase tracking-widest">Intelligence</p>
         </div>
         {navItem("analytics", Activity, "Protocol Analytics")}
-        {navItem("recruitment", UserSearch, "Patient Recruitment")}
         {navItem("explorer", Search, "Trial Explorer")}
         {navItem("drafter", FileText, "Protocol Drafter")}
+        {navItem("recruitment", UserSearch, "Patient Recruitment")}
         {navItem("kol", Users, "KOL Intelligence")}
         <div className="pt-3 pb-1 px-3">
           <p className="text-xs font-semibold text-white/25 uppercase tracking-widest">Workspace</p>
