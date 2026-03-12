@@ -5,13 +5,14 @@ import {
   Plus, ArrowRight, AlertTriangle, CheckCircle2, Clock, Globe,
   FlaskConical, ChevronRight, X, Download, Share2,
   Upload, Star, BookOpen, MapPin, ExternalLink, Filter,
-  Calendar, MoreHorizontal, Building2, Shield, Zap
+  Calendar, MoreHorizontal, Building2, Shield, Zap,
+  Brain, Sparkles, Database, Stethoscope, Send
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Screen = "overview" | "studies" | "analytics" | "explorer" | "drafter" | "kol" | "team";
+type Screen = "ask" | "overview" | "studies" | "analytics" | "explorer" | "drafter" | "kol" | "team";
 
 const studies = [
   { id: "MERI-2024-001", title: "Pembrolizumab + Chemo in NSCLC", phase: "Phase II", indication: "Oncology", sites: 8, enrolled: 124, target: 200, status: "On Track", months: 14, countries: 4, team: ["SC","RK","JP","AM"] },
@@ -69,6 +70,18 @@ function Sidebar({ active, onNav }: { active: Screen; onNav: (s: Screen) => void
       </div>
 
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+        <button
+          onClick={() => onNav("ask")}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all mb-1 ${
+            active === "ask"
+              ? "bg-[#0EA5E9]/15 text-[#0EA5E9] border-l-2 border-[#0EA5E9]"
+              : "bg-white/5 text-white hover:bg-white/10"
+          }`}
+        >
+          <Sparkles className="w-4 h-4 flex-shrink-0" />
+          <span>Ask Hakase</span>
+          <span className="ml-auto text-xs bg-[#0EA5E9]/20 text-[#0EA5E9] rounded px-1.5 py-0.5 font-semibold">AI</span>
+        </button>
         {navItem("overview", LayoutDashboard, "Overview")}
         {navItem("studies", FolderOpen, "Studies")}
         <div className="pt-3 pb-1 px-3">
@@ -911,8 +924,212 @@ function TeamScreen() {
   );
 }
 
+function AskHakaseScreen({ onNav }: { onNav: (s: Screen) => void }) {
+  const [query, setQuery] = useState("");
+  const [submitted, setSubmitted] = useState<string | null>(null);
+
+  const suggestions = [
+    { label: "Summarize enrollment risk across all active Meridian studies" },
+    { label: "Analyze protocol risks for MERI-2024-089 (IL-23 Crohn's trial)" },
+    { label: "Which sites are underperforming in MERI-2023-047?" },
+    { label: "Identify KOLs for the CAR-T AML program (MERI-2025-002)" },
+    { label: "Compare PFS assumptions in MERI-2024-001 vs KEYNOTE-010" },
+    { label: "Draft eligibility criteria for MEK-i + PD-L1 melanoma study" },
+  ];
+
+  const agents = [
+    {
+      Icon: Brain,
+      tag: "R&D",
+      tagColor: "text-violet-600 bg-violet-50",
+      title: "BioResearch Analyst",
+      desc: "Benchmarks protocols against 328K+ trials. Flags design risks and competing programs.",
+      color: "border-violet-100 hover:border-violet-300",
+      iconBg: "bg-violet-50",
+      iconColor: "text-violet-500",
+      action: () => onNav("analytics"),
+    },
+    {
+      Icon: Stethoscope,
+      tag: "CLINICAL",
+      tagColor: "text-emerald-600 bg-emerald-50",
+      title: "Clinical Ops Director",
+      desc: "Monitors site performance, enrollment pace, and flags at-risk milestones in real time.",
+      color: "border-emerald-100 hover:border-emerald-300",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-500",
+      action: () => onNav("studies"),
+    },
+    {
+      Icon: Shield,
+      tag: "REGULATORY",
+      tagColor: "text-blue-600 bg-blue-50",
+      title: "Regulatory Consultant",
+      desc: "Reviews protocols for ICH E6(R3) and CDISC alignment. Drafts amendment justifications.",
+      color: "border-blue-100 hover:border-blue-300",
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-500",
+      action: () => onNav("drafter"),
+    },
+    {
+      Icon: Database,
+      tag: "DATA",
+      tagColor: "text-amber-600 bg-amber-50",
+      title: "Data Quality Engine",
+      desc: "Audits CRF completeness, flags missing data patterns, and validates CDISC datasets.",
+      color: "border-amber-100 hover:border-amber-300",
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-500",
+      action: () => onNav("analytics"),
+    },
+    {
+      Icon: Users,
+      tag: "KOL",
+      tagColor: "text-pink-600 bg-pink-50",
+      title: "KOL Scout",
+      desc: "Surfaces high-influence investigators for your indication using PubMed + trials data.",
+      color: "border-pink-100 hover:border-pink-300",
+      iconBg: "bg-pink-50",
+      iconColor: "text-pink-500",
+      action: () => onNav("kol"),
+    },
+    {
+      Icon: Search,
+      tag: "TRIALS",
+      tagColor: "text-slate-600 bg-slate-100",
+      title: "Trial Explorer",
+      desc: "Searches 556K+ ClinicalTrials.gov records and generates AI briefs for any NCT study.",
+      color: "border-slate-100 hover:border-slate-300",
+      iconBg: "bg-slate-50",
+      iconColor: "text-slate-500",
+      action: () => onNav("explorer"),
+    },
+  ];
+
+  const handleSubmit = () => {
+    if (query.trim()) setSubmitted(query.trim());
+  };
+
+  if (submitted) return (
+    <div className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 to-white flex flex-col items-center p-8">
+      <div className="w-full max-w-2xl">
+        <button onClick={() => setSubmitted(null)} className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 mb-6">
+          ← New query
+        </button>
+        <div className="bg-[#0EA5E9]/10 border border-[#0EA5E9]/20 rounded-2xl px-5 py-3 mb-6 flex items-start gap-3">
+          <Sparkles className="w-4 h-4 text-[#0EA5E9] flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-slate-700 font-medium">{submitted}</p>
+        </div>
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-6 h-6 rounded-full bg-[#0EA5E9] flex items-center justify-center"><Sparkles className="w-3 h-3 text-white" /></div>
+              <span className="text-sm font-semibold text-slate-800">Hakase AI · Meridian Therapeutics Context</span>
+              <Badge className="text-xs bg-emerald-100 text-emerald-700 ml-auto">Live</Badge>
+            </div>
+            <p className="text-sm text-slate-700 leading-relaxed mb-4">
+              Across your 7 active Meridian studies, I've identified <strong>3 enrollment risk signals</strong> requiring attention:
+            </p>
+            <div className="space-y-3">
+              {[
+                { study: "MERI-2024-089", risk: "Critical — Only 2 months to CSR deadline with 81% enrollment. Site 6 (Berlin) contributing 0 patients in last 30 days.", level: "Critical" },
+                { study: "MERI-2023-047", risk: "At Risk — BRD4-i Phase III is 89% enrolled but 3 sites have dropout rates above protocol threshold (12% vs 8% expected).", level: "At Risk" },
+                { study: "MERI-2025-002", risk: "Monitor — CAR-T AML Phase I is on track at 40% but competing NCT04739358 opened at MSKCC last week.", level: "Monitor" },
+              ].map((r) => (
+                <div key={r.study} className={`rounded-xl p-3 border text-sm ${r.level === "Critical" ? "bg-red-50 border-red-100" : r.level === "At Risk" ? "bg-amber-50 border-amber-100" : "bg-slate-50 border-slate-100"}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-xs text-slate-500">{r.study}</span>
+                    <Badge className={`text-xs ${r.level === "Critical" ? "bg-red-100 text-red-700" : r.level === "At Risk" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>{r.level}</Badge>
+                  </div>
+                  <p className="text-slate-700">{r.risk}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2 flex-wrap">
+              <Button size="sm" className="text-xs bg-[#0EA5E9] hover:bg-[#0284C7] text-white" onClick={() => onNav("analytics")}>Open Protocol Analytics</Button>
+              <Button size="sm" variant="outline" className="text-xs" onClick={() => onNav("studies")}>View All Studies</Button>
+              <Button size="sm" variant="outline" className="text-xs">Export Report</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 to-white flex flex-col items-center px-8 pt-14 pb-8">
+      <div className="w-full max-w-2xl flex flex-col items-center">
+        <div className="flex items-center gap-2 mb-5 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-sm">
+          <Sparkles className="w-3.5 h-3.5 text-[#0EA5E9]" />
+          <span className="text-xs font-semibold text-slate-600">Hakase Clinical Intelligence v2.0</span>
+        </div>
+        <h1 className="text-3xl font-bold text-slate-900 text-center mb-3 leading-tight">
+          Ask <span className="text-[#0EA5E9]">Hakase</span> anything
+        </h1>
+        <p className="text-slate-500 text-sm text-center mb-8 max-w-md leading-relaxed">
+          Orchestrate clinical trials with autonomous AI agents. Search across all Meridian studies, protocols, and intelligence.
+        </p>
+
+        <div className="w-full mb-4">
+          <div className="relative flex items-center bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <Brain className="w-5 h-5 text-[#0EA5E9] absolute left-4 flex-shrink-0" />
+            <input
+              className="flex-1 pl-12 pr-14 py-4 text-sm bg-transparent rounded-2xl focus:outline-none text-slate-700 placeholder:text-slate-400"
+              placeholder="Ask Hakase anything about Meridian's protocols, sites, or trials..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+              autoFocus
+            />
+            <button
+              onClick={handleSubmit}
+              className="absolute right-3 w-9 h-9 rounded-xl bg-[#0EA5E9] hover:bg-[#0284C7] flex items-center justify-center transition-colors"
+            >
+              <Send className="w-4 h-4 text-white" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 w-full mb-10">
+          {suggestions.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => setSubmitted(s.label)}
+              className="flex items-center gap-2 text-xs text-slate-600 bg-white border border-slate-200 rounded-full px-4 py-2 hover:border-[#0EA5E9]/40 hover:text-[#0EA5E9] hover:bg-blue-50/40 transition-all text-left w-fit"
+            >
+              <span className="text-[#0EA5E9] font-semibold text-xs">Ask Hakase</span>
+              <span className="text-slate-400">·</span>
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="w-full">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest text-center mb-4">Select Specialized Agent</p>
+          <div className="grid grid-cols-3 gap-3">
+            {agents.map((a, i) => (
+              <button
+                key={i}
+                onClick={a.action}
+                className={`bg-white rounded-2xl border p-4 text-left hover:shadow-md transition-all ${a.color}`}
+              >
+                <div className={`w-9 h-9 rounded-xl ${a.iconBg} flex items-center justify-center mb-3`}>
+                  <a.Icon className={`w-5 h-5 ${a.iconColor}`} />
+                </div>
+                <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${a.tagColor.split(" ")[0]}`}>{a.tag}</p>
+                <p className="text-sm font-bold text-slate-800 mb-1">{a.title}</p>
+                <p className="text-xs text-slate-500 leading-relaxed">{a.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
-  const [screen, setScreen] = useState<Screen>("overview");
+  const [screen, setScreen] = useState<Screen>("ask");
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
@@ -920,6 +1137,7 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar />
         <div className="flex-1 flex overflow-hidden">
+          {screen === "ask" && <AskHakaseScreen onNav={setScreen} />}
           {screen === "overview" && <OverviewScreen onNav={setScreen} />}
           {screen === "studies" && <StudiesScreen onNav={setScreen} />}
           {screen === "analytics" && <AnalyticsScreen />}
