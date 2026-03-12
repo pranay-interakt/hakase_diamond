@@ -500,7 +500,7 @@ function TrialExplorerView() {
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3">AI Trial Analysis</h3>
               <div className="prose prose-sm max-w-none text-slate-600 space-y-3">
                 <p>This phase 3 trial investigates the efficacy of pembrolizumab in combination with standard chemotherapy compared to placebo + chemotherapy. <strong>Historical success rate for similar designs is approximately 45%.</strong></p>
-                <p><strong>Key Strengths:</strong> The robust double-blind randomized design minimizes bias. The sample size of 850 provides sufficient statistical power (>90%) for the primary endpoints of PFS and OS.</p>
+                <p><strong>Key Strengths:</strong> The robust double-blind randomized design minimizes bias. The sample size of 850 provides sufficient statistical power ({'>'}90%) for the primary endpoints of PFS and OS.</p>
                 <p><strong>Potential Risks:</strong> Enrollment timeline (36 months) may be optimistic based on competing trials in the same indication. The inclusion criteria requiring specific biomarker thresholds (PD-L1 TPS ≥1%) may limit the available patient pool.</p>
               </div>
             </div>
@@ -741,7 +741,7 @@ function KOLDashboardView() {
         </div>
         <div className="w-px h-6 bg-slate-200"></div>
         <div className="flex items-center gap-2">
-          <div className="text-sm text-slate-500 uppercase tracking-wider font-semibold">High Influence (>90)</div>
+          <div className="text-sm text-slate-500 uppercase tracking-wider font-semibold">High Influence ({'>'}90)</div>
           <div className="text-xl font-bold text-[#0EA5E9]">23</div>
         </div>
         <div className="w-px h-6 bg-slate-200"></div>
