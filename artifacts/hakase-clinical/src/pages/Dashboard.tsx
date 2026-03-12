@@ -4,7 +4,7 @@ import {
   BarChart2, UsersRound, Settings, Bell, HelpCircle, ChevronDown,
   Plus, ArrowRight, AlertTriangle, CheckCircle2, Clock, Globe,
   FlaskConical, ChevronRight, X, Download, Share2,
-  Upload, Star, BookOpen, Microscope, MapPin, ExternalLink, Filter,
+  Upload, Star, BookOpen, MapPin, ExternalLink, Filter,
   Calendar, MoreHorizontal, Building2, Shield, Zap
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -56,14 +56,8 @@ function Sidebar({ active, onNav }: { active: Screen; onNav: (s: Screen) => void
   return (
     <div className="w-56 flex-shrink-0 bg-[#0D1B2A] flex flex-col h-full">
       <div className="p-4 border-b border-white/10">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-7 h-7 rounded-lg bg-[#0EA5E9] flex items-center justify-center">
-            <Microscope className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <div className="text-white font-bold text-sm leading-none">Hakase</div>
-            <div className="text-[#0EA5E9] text-xs font-medium">Clinical</div>
-          </div>
+        <div className="flex justify-center mb-1">
+          <img src="/hakase-logo.png" alt="Hakase AI" className="h-9 w-auto object-contain" />
         </div>
         <button className="mt-3 w-full flex items-center justify-between px-2 py-1.5 rounded-md bg-white/5 hover:bg-white/10 transition-colors">
           <div className="flex items-center gap-2">
