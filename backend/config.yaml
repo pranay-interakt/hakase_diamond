@@ -1,0 +1,9 @@
+llm:
+  backend: "ollama"
+  ollama:
+    model: "qwen2.5:32b"
+    options:
+      temperature: 0.1
+vector_store:
+  chunk_size: 1500
+  chunk_overlap: 150
