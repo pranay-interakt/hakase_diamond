@@ -4,6 +4,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
+packages = ["freetype", "gumbo", "harfbuzz", "jbig2dec", "libjpeg_turbo", "libxcrypt", "mupdf", "openjpeg", "pkg-config", "swig", "xcbuild", "xsimd"]
 
 [workflows]
 runButton = "Project"
@@ -37,13 +38,13 @@ outputType = "webview"
 name = "API Server"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd frontend && PORT=8000 pnpm --filter @workspace/api-server run dev"
-waitForPort = 8000
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && PORT=8000 python3 server.py"
+waitForPort = 8000
 
 [[ports]]
 localPort = 5000
