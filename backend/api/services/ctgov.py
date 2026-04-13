@@ -26,7 +26,7 @@ async def search_studies(
     if terms:
         params["query.term"] = " ".join(terms)
     if phase:
-        params["filter.phase"] = "|".join(phase)
+        params["filter.advanced"] = " OR ".join([f"AREA[Phase]{p}" for p in phase])
     if status:
         params["filter.overallStatus"] = "|".join(status)
     if page_token:

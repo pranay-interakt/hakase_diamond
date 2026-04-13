@@ -59,7 +59,7 @@ export default function EvidenceLibrary() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 mb-1">Evidence Library</h2>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Evidence Library</h2>
         <p className="text-sm text-slate-500">Search 36M+ articles in PubMed — automatically classified by evidence level</p>
       </div>
 

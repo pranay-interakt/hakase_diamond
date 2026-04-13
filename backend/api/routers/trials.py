@@ -97,8 +97,23 @@ async def get_trial_sites(nct_id: str):
         raise HTTPException(status_code=404, detail=str(e))
     p = data.get("protocolSection", {})
     locations = p.get("contactsLocationsModule", {}).get("locations", [])
+    # Enrich locations with trial-level enrollment/date data for rate computation
+    status_mod = p.get("statusModule", {})
+    design_mod = p.get("designModule", {})
+    n_locs = max(1, len(locations))
+    for loc in locations:
+        if not loc.get("enrollmentCount"):
+            enr = design_mod.get("enrollmentInfo", {}).get("count")
+            if enr:
+                loc["enrollmentCount"] = enr
+                loc["locationCount"] = n_locs
+        if not loc.get("startDate"):
+            loc["startDate"] = status_mod.get("startDateStruct", {}).get("date", "")
+        if not loc.get("completionDate"):
+            loc["completionDate"] = status_mod.get("completionDateStruct", {}).get("date", "")
     site_perf = analysis.estimate_site_performance(locations)
     return {"nctId": nct_id, "sites": site_perf, "total": len(site_perf)}
+
 
 
 @router.get("/stats/global")

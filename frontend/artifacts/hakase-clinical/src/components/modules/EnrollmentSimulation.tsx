@@ -49,7 +49,7 @@ export default function EnrollmentSimulation() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 mb-1">Enrollment Simulation</h2>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Enrollment Simulation</h2>
         <p className="text-sm text-slate-500">Monte Carlo simulation (1,000 runs) using real historical enrollment rates from ClinicalTrials.gov</p>
       </div>
 

@@ -28,9 +28,9 @@ export default function KOLFinder() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 mb-1">KOL Finder</h2>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">KOL Finder</h2>
         <p className="text-sm text-slate-500">
           Identify Key Opinion Leaders by mining real PubMed publication data — ranked by publication count, first-authorship, and clinical trial involvement.
         </p>

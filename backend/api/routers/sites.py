@@ -60,24 +60,29 @@ async def recommend_sites(
             break
 
     site_list = list(all_sites.values())
-    perf = analysis.estimate_site_performance([
-        {"facility": s["facility"], "city": s["city"], "country": s["country"], "status": s["status"]}
-        for s in site_list
-    ])
+    perf = analysis.estimate_site_performance(site_list)   # pass full dicts — includes trialCount/activeTrials/completedTrials
 
-    for i, site in enumerate(site_list):
-        perf_data = perf[i] if i < len(perf) else {}
-        site["score"] = perf_data.get("score", 50)
-        site["enrollmentRate"] = perf_data.get("enrollmentRate", 1.5)
-        site["startupWeeks"] = perf_data.get("startupWeeks", 14)
+    # estimate_site_performance returns sorted list; build a lookup by key
+    perf_map = {f"{p['facility']}|{p['city']}|{p['country']}": p for p in perf}
 
-    site_list.sort(key=lambda x: (x.get("score", 0), x.get("trialCount", 0)), reverse=True)
+    enriched = []
+    for site in site_list:
+        key = f"{site['facility']}|{site['city']}|{site['country']}"
+        p = perf_map.get(key, {})
+        enriched.append({**site, **{
+            "score": p.get("score", 0),
+            "enrollmentRate": p.get("enrollmentRate", None),
+            "rateSource": p.get("rateSource", "unknown"),
+        }})
+
+    enriched.sort(key=lambda x: (x.get("score", 0), x.get("trialCount", 0)), reverse=True)
     return {
         "condition": condition,
-        "total": len(site_list),
-        "sites": site_list[:limit],
-        "countrySummary": _summarize_by_country(site_list[:limit]),
+        "total": len(enriched),
+        "sites": enriched[:limit],
+        "countrySummary": _summarize_by_country(enriched[:limit]),
     }
+
 
 
 def _summarize_by_country(sites: list[dict]) -> list[dict]:

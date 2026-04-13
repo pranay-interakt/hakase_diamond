@@ -207,7 +207,7 @@ export default function ProtocolStudio() {
     return (
       <div className="space-y-6 max-w-4xl">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900 mb-1">Protocol Studio</h2>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Protocol Studio</h2>
           <p className="text-sm text-slate-500">
             Upload your protocol PDF for compliance checking, real-world outcome strategies, site recommendations, KOL discovery, and live amendment impact analysis — all powered by live public data.
           </p>

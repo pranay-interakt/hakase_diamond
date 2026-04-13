@@ -26,17 +26,33 @@ type Module =
   | "protocol"
   | "kols";
 
-const navItems: { id: Module; label: string; icon: React.ReactNode; badge?: string }[] = [
-  { id: "overview", label: "Overview", icon: <LayoutDashboard className="h-4 w-4" /> },
-  { id: "explorer", label: "Trial Explorer", icon: <Search className="h-4 w-4" /> },
-  { id: "safety", label: "Safety Intelligence", icon: <Shield className="h-4 w-4" /> },
-  { id: "sites", label: "Site Intelligence", icon: <MapPin className="h-4 w-4" /> },
-  { id: "compliance", label: "Compliance", icon: <CheckCircle2 className="h-4 w-4" /> },
-  { id: "simulation", label: "Enrollment Sim", icon: <TrendingUp className="h-4 w-4" /> },
-  { id: "evidence", label: "Evidence Library", icon: <BookOpen className="h-4 w-4" /> },
-  { id: "kols", label: "KOL Finder", icon: <Users className="h-4 w-4" /> },
-  { id: "protocol", label: "Protocol Studio", icon: <FileText className="h-4 w-4" />, badge: "AI" },
+const navGroups: { label?: string; items: { id: Module; label: string; icon: React.ReactNode; badge?: string }[] }[] = [
+  {
+    items: [
+      { id: "overview", label: "Overview", icon: <LayoutDashboard className="h-4 w-4" /> },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      { id: "explorer",    label: "Trial Explorer",      icon: <Search className="h-4 w-4" /> },
+      { id: "safety",      label: "Safety Intelligence", icon: <Shield className="h-4 w-4" /> },
+      { id: "sites",       label: "Site Intelligence",   icon: <MapPin className="h-4 w-4" /> },
+      { id: "evidence",    label: "Evidence Library",    icon: <BookOpen className="h-4 w-4" /> },
+      { id: "kols",        label: "KOL Finder",          icon: <Users className="h-4 w-4" /> },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { id: "compliance",  label: "Compliance",          icon: <CheckCircle2 className="h-4 w-4" /> },
+      { id: "simulation",  label: "Enrollment Sim",      icon: <TrendingUp className="h-4 w-4" /> },
+      { id: "protocol",    label: "Protocol Studio",     icon: <FileText className="h-4 w-4" />, badge: "AI" },
+    ],
+  },
 ];
+
+const navItems = navGroups.flatMap(g => g.items);
 
 const features: { icon: React.ReactNode; title: string; desc: string; module: Module }[] = [
   { icon: <Search className="h-5 w-5 text-blue-500" />, title: "Trial Explorer", desc: "Search the entire ClinicalTrials.gov registry in real time — 500K+ trials by condition, drug, phase, or status.", module: "explorer" },
@@ -55,76 +71,144 @@ export default function Dashboard() {
 
   const renderModule = () => {
     switch (active) {
-      case "explorer": return <TrialExplorer onSelectTrial={() => {}} />;
-      case "safety": return <SafetyIntelligence />;
-      case "sites": return <SiteIntelligence />;
-      case "compliance": return <ComplianceChecker />;
-      case "simulation": return <EnrollmentSimulation />;
-      case "evidence": return <EvidenceLibrary />;
-      case "kols": return <KOLFinder />;
-      case "protocol": return <ProtocolStudio />;
-      default: return <Overview onNavigate={m => setActive(m)} />;
+      case "explorer":    return <TrialExplorer onSelectTrial={() => {}} />;
+      case "safety":      return <SafetyIntelligence />;
+      case "sites":       return <SiteIntelligence />;
+      case "compliance":  return <ComplianceChecker />;
+      case "simulation":  return <EnrollmentSimulation />;
+      case "evidence":    return <EvidenceLibrary />;
+      case "kols":        return <KOLFinder />;
+      case "protocol":    return <ProtocolStudio />;
+      default:            return <Overview onNavigate={m => setActive(m)} />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: "#f1f5f9" }}>
       {mobileOpen && (
-        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
-      <aside className={`
-        fixed lg:relative inset-y-0 left-0 z-50 w-64 flex-shrink-0
-        bg-slate-900 text-white flex flex-col
-        transform transition-transform duration-200 ease-in-out
-        ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      `}>
-        <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-blue-500 rounded-lg p-1.5">
-              <Zap className="h-4 w-4 text-white" />
+      <aside
+        className={`fixed lg:relative inset-y-0 left-0 z-50 flex-shrink-0 flex flex-col transform transition-transform duration-300 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+        style={{
+          width: "260px",
+          background: "linear-gradient(180deg,#0f172a 0%,#0c1628 55%,#091020 100%)",
+          borderRight: "1px solid rgba(148,163,184,0.08)",
+        }}
+      >
+        <div className="px-5 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(148,163,184,0.08)" }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-shrink-0">
+                <div className="absolute inset-0 rounded-xl blur-md opacity-70" style={{ background: "linear-gradient(135deg,#3b82f6,#6366f1)" }} />
+                <div className="relative flex items-center justify-center w-8 h-8 rounded-xl" style={{ background: "linear-gradient(135deg,#3b82f6,#6366f1)" }}>
+                  <Zap className="h-4 w-4 text-white" />
+                </div>
+              </div>
+              <div>
+                <p className="text-[13px] font-bold text-white tracking-tight leading-tight">hakase AI</p>
+                <p className="text-[10px] font-medium mt-0.5" style={{ color: "#475569" }}>Clinical Trial Hub</p>
+              </div>
             </div>
-            <div>
-              <p className="font-bold text-sm tracking-tight">hakase AI</p>
-              <p className="text-xs text-slate-400">Clinical Trial Hub</p>
-            </div>
+            <button onClick={() => setMobileOpen(false)} className="lg:hidden flex items-center justify-center w-7 h-7 rounded-lg transition-colors" style={{ background: "rgba(255,255,255,0.04)" }}>
+              <X className="h-3.5 w-3.5" style={{ color: "#64748b" }} />
+            </button>
           </div>
-          <button onClick={() => setMobileOpen(false)} className="lg:hidden p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
-            <X className="h-4 w-4 text-slate-400" />
-          </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => { setActive(item.id); setMobileOpen(false); }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all text-sm ${
-                active === item.id
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-              }`}
-            >
-              <span className="flex-shrink-0">{item.icon}</span>
-              <span className="flex-1 font-medium">{item.label}</span>
-              {item.badge && (
-                <span className="bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded font-medium">{item.badge}</span>
+        <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-4">
+          {navGroups.map((group, gi) => (
+            <div key={gi}>
+              {group.label && (
+                <p className="px-3 mb-2 text-[9px] font-bold uppercase tracking-[0.12em]" style={{ color: "#1e3a5f" }}>
+                  {group.label}
+                </p>
               )}
-            </button>
+              <div className="space-y-0.5">
+                {group.items.map(item => {
+                  const isActive = active === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => { setActive(item.id); setMobileOpen(false); }}
+                      className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left group transition-all duration-200"
+                      style={{
+                        background: isActive
+                          ? "linear-gradient(135deg,rgba(59,130,246,0.18),rgba(99,102,241,0.12))"
+                          : "transparent",
+                        border: isActive
+                          ? "1px solid rgba(99,130,246,0.2)"
+                          : "1px solid transparent",
+                      }}
+                      onMouseEnter={e => {
+                        if (!isActive) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
+                      }}
+                      onMouseLeave={e => {
+                        if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent";
+                      }}
+                    >
+                      {isActive && (
+                        <div
+                          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+                          style={{ background: "linear-gradient(180deg,#3b82f6,#6366f1)" }}
+                        />
+                      )}
+
+                      <span
+                        className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200"
+                        style={{
+                          background: isActive
+                            ? "linear-gradient(135deg,#3b82f6,#6366f1)"
+                            : "rgba(255,255,255,0.04)",
+                          boxShadow: isActive ? "0 0 12px rgba(99,102,241,0.35)" : "none",
+                        }}
+                      >
+                        <span style={{ color: isActive ? "#fff" : "#475569" }}>{item.icon}</span>
+                      </span>
+
+                      <span
+                        className="flex-1 text-[13px] font-medium tracking-tight"
+                        style={{ color: isActive ? "#f1f5f9" : "#64748b" }}
+                      >
+                        {item.label}
+                      </span>
+
+                      {item.badge && (
+                        <span
+                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-md tracking-widest"
+                          style={{ background: "linear-gradient(135deg,#3b82f6,#6366f1)", color: "#fff" }}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-700/50">
-          <div className="bg-slate-800 rounded-xl p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Globe className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="text-xs font-medium text-slate-200">Live Data Sources</span>
+        <div className="px-3 pb-4 pt-2" style={{ borderTop: "1px solid rgba(148,163,184,0.08)" }}>
+          <div className="rounded-xl px-3.5 py-3" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(148,163,184,0.07)" }}>
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-1.5">
+                <Globe className="h-3 w-3" style={{ color: "#34d399" }} />
+                <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#334155" }}>Live sources</span>
+              </div>
+              <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: "#34d399" }} />
             </div>
-            <div className="space-y-1.5">
-              {["ClinicalTrials.gov", "FDA FAERS", "PubMed", "OpenFDA"].map(src => (
-                <div key={src} className="flex items-center gap-1.5 text-xs text-slate-400">
-                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0 animate-pulse" />
-                  {src}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+              {[
+                { name: "ClinicalTrials.gov", dot: "#3b82f6" },
+                { name: "FDA FAERS",          dot: "#f87171" },
+                { name: "PubMed",             dot: "#34d399" },
+                { name: "OpenFDA",            dot: "#fb923c" },
+              ].map(src => (
+                <div key={src.name} className="flex items-center gap-1.5 min-w-0">
+                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: src.dot }} />
+                  <span className="text-[10px] truncate" style={{ color: "#334155" }}>{src.name}</span>
                 </div>
               ))}
             </div>
@@ -133,19 +217,17 @@ export default function Dashboard() {
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white border-b border-slate-200 px-4 lg:px-6 h-14 flex items-center justify-between flex-shrink-0">
+        <header className="flex-shrink-0 h-14 flex items-center justify-between px-4 lg:px-6 bg-white" style={{ borderBottom: "1px solid #e2e8f0" }}>
           <div className="flex items-center gap-3">
             <button onClick={() => setMobileOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors">
               <Menu className="h-5 w-5 text-slate-500" />
             </button>
-            <div className="flex items-center gap-1.5 text-sm text-slate-500">
-              <span className="cursor-pointer hover:text-blue-600 transition-colors" onClick={() => setActive("overview")}>
-                Clinical Hub
-              </span>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-slate-400 cursor-pointer hover:text-blue-600 transition-colors font-medium" onClick={() => setActive("overview")}>Clinical Hub</span>
               {active !== "overview" && (
                 <>
-                  <ChevronRight className="h-3.5 w-3.5" />
-                  <span className="text-slate-900 font-medium">{navItems.find(n => n.id === active)?.label}</span>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-300" />
+                  <span className="text-slate-800 font-semibold">{navItems.find(n => n.id === active)?.label}</span>
                 </>
               )}
             </div>
@@ -156,9 +238,11 @@ export default function Dashboard() {
           </Badge>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          <div key={active} className="animate-in fade-in duration-150">
-            {renderModule()}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 lg:p-8 max-w-7xl mx-auto w-full">
+            <div key={active} className="animate-in fade-in duration-150">
+              {renderModule()}
+            </div>
           </div>
         </main>
       </div>

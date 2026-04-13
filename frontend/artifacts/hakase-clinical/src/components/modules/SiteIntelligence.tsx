@@ -32,7 +32,7 @@ export default function SiteIntelligence() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 mb-1">Site Intelligence</h2>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Site Intelligence</h2>
         <p className="text-sm text-slate-500">Site recommendations scored by enrollment capacity, startup time, and experience from real ClinicalTrials.gov data</p>
       </div>
 

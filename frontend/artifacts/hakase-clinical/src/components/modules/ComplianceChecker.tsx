@@ -73,7 +73,7 @@ export default function ComplianceChecker() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 mb-1">Regulatory Compliance Checker</h2>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Regulatory Compliance Checker</h2>
         <p className="text-sm text-slate-500">Validate your protocol against ICH E6/E8/E9, FDA 21 CFR, CONSORT, and WHO ICTRP requirements</p>
       </div>
 

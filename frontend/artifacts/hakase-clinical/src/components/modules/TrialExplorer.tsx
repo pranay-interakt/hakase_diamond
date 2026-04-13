@@ -53,7 +53,7 @@ export default function TrialExplorer({ onSelectTrial }: { onSelectTrial?: (nctI
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900 mb-1">Trial Explorer</h2>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Trial Explorer</h2>
         <p className="text-sm text-slate-500">Search 500,000+ trials from ClinicalTrials.gov in real time</p>
       </div>
 
