@@ -1,52 +1,52 @@
 import { useState } from "react";
 import {
-  LayoutDashboard, Search, ArrowLeftRight, Shield, MapPin,
+  LayoutDashboard, Search, Shield, MapPin,
   CheckCircle2, TrendingUp, BookOpen, FileText, ChevronRight,
-  Globe, Sparkles, Menu, X, Zap
+  Globe, Sparkles, Menu, X, Zap, Users, FlaskConical, Activity,
+  BookOpen as BookOpenIcon
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import TrialExplorer from "@/components/modules/TrialExplorer";
-import SimilarTrials from "@/components/modules/SimilarTrials";
 import SafetyIntelligence from "@/components/modules/SafetyIntelligence";
 import SiteIntelligence from "@/components/modules/SiteIntelligence";
 import ComplianceChecker from "@/components/modules/ComplianceChecker";
 import EnrollmentSimulation from "@/components/modules/EnrollmentSimulation";
 import EvidenceLibrary from "@/components/modules/EvidenceLibrary";
 import ProtocolStudio from "@/components/modules/ProtocolStudio";
-import { FlaskConical, Activity, BookOpen as BookOpenIcon } from "lucide-react";
+import KOLFinder from "@/components/modules/KOLFinder";
 
 type Module =
   | "overview"
   | "explorer"
-  | "similar"
   | "safety"
   | "sites"
   | "compliance"
   | "simulation"
   | "evidence"
-  | "protocol";
+  | "protocol"
+  | "kols";
 
 const navItems: { id: Module; label: string; icon: React.ReactNode; badge?: string }[] = [
   { id: "overview", label: "Overview", icon: <LayoutDashboard className="h-4 w-4" /> },
   { id: "explorer", label: "Trial Explorer", icon: <Search className="h-4 w-4" /> },
-  { id: "similar", label: "Similar Trials", icon: <ArrowLeftRight className="h-4 w-4" /> },
   { id: "safety", label: "Safety Intelligence", icon: <Shield className="h-4 w-4" /> },
   { id: "sites", label: "Site Intelligence", icon: <MapPin className="h-4 w-4" /> },
   { id: "compliance", label: "Compliance", icon: <CheckCircle2 className="h-4 w-4" /> },
   { id: "simulation", label: "Enrollment Sim", icon: <TrendingUp className="h-4 w-4" /> },
   { id: "evidence", label: "Evidence Library", icon: <BookOpen className="h-4 w-4" /> },
+  { id: "kols", label: "KOL Finder", icon: <Users className="h-4 w-4" /> },
   { id: "protocol", label: "Protocol Studio", icon: <FileText className="h-4 w-4" />, badge: "AI" },
 ];
 
 const features: { icon: React.ReactNode; title: string; desc: string; module: Module }[] = [
   { icon: <Search className="h-5 w-5 text-blue-500" />, title: "Trial Explorer", desc: "Search the entire ClinicalTrials.gov registry in real time — 500K+ trials by condition, drug, phase, or status.", module: "explorer" },
-  { icon: <ArrowLeftRight className="h-5 w-5 text-purple-500" />, title: "Similar Trial Intelligence", desc: "Enter any NCT ID to find similar trials, compute data-backed success probability, and benchmark enrollment.", module: "similar" },
   { icon: <Shield className="h-5 w-5 text-red-500" />, title: "Safety Intelligence", desc: "Access 20M+ FDA FAERS adverse events. Visualize reaction frequencies, serious outcomes, recall history and trends.", module: "safety" },
   { icon: <MapPin className="h-5 w-5 text-emerald-500" />, title: "Site Intelligence", desc: "Identify the best investigative sites globally ranked by enrollment rate, startup time, and prior trial experience.", module: "sites" },
   { icon: <CheckCircle2 className="h-5 w-5 text-amber-500" />, title: "Regulatory Compliance", desc: "Validate protocols against ICH E6/E8/E9, FDA 21 CFR, CONSORT, and WHO ICTRP with actionable remediation.", module: "compliance" },
   { icon: <TrendingUp className="h-5 w-5 text-cyan-500" />, title: "Enrollment Simulation", desc: "1,000-iteration Monte Carlo simulation. Rates auto-derived from real completed trials. P10/P50/P90 timelines.", module: "simulation" },
   { icon: <BookOpen className="h-5 w-5 text-violet-500" />, title: "Evidence Library", desc: "Mine 36M+ PubMed articles with automatic evidence level classification — meta-analyses, Phase 3 RCTs ranked first.", module: "evidence" },
-  { icon: <FileText className="h-5 w-5 text-pink-500" />, title: "Protocol Studio", desc: "Upload protocol PDFs for entity extraction, compliance scoring, and live amendment impact analysis.", module: "protocol" },
+  { icon: <Users className="h-5 w-5 text-indigo-500" />, title: "KOL Finder", desc: "Identify Key Opinion Leaders by mining PubMed authorship data — ranked by publications, first/senior authorship, and clinical trial involvement.", module: "kols" },
+  { icon: <FileText className="h-5 w-5 text-pink-500" />, title: "Protocol Studio", desc: "Upload protocol PDFs for compliance analysis, named amendment tracking, real-world strategies, site recommendations, and KOL discovery.", module: "protocol" },
 ];
 
 export default function Dashboard() {
@@ -55,13 +55,13 @@ export default function Dashboard() {
 
   const renderModule = () => {
     switch (active) {
-      case "explorer": return <TrialExplorer onSelectTrial={nctId => { setActive("similar"); }} />;
-      case "similar": return <SimilarTrials />;
+      case "explorer": return <TrialExplorer onSelectTrial={() => {}} />;
       case "safety": return <SafetyIntelligence />;
       case "sites": return <SiteIntelligence />;
       case "compliance": return <ComplianceChecker />;
       case "simulation": return <EnrollmentSimulation />;
       case "evidence": return <EvidenceLibrary />;
+      case "kols": return <KOLFinder />;
       case "protocol": return <ProtocolStudio />;
       default: return <Overview onNavigate={m => setActive(m)} />;
     }
@@ -70,10 +70,7 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       <aside className={`
@@ -92,10 +89,7 @@ export default function Dashboard() {
               <p className="text-xs text-slate-400">Clinical Trial Hub</p>
             </div>
           </div>
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg hover:bg-slate-700 transition-colors"
-          >
+          <button onClick={() => setMobileOpen(false)} className="lg:hidden p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
             <X className="h-4 w-4 text-slate-400" />
           </button>
         </div>
@@ -114,9 +108,7 @@ export default function Dashboard() {
               <span className="flex-shrink-0">{item.icon}</span>
               <span className="flex-1 font-medium">{item.label}</span>
               {item.badge && (
-                <span className="bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded font-medium">
-                  {item.badge}
-                </span>
+                <span className="bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded font-medium">{item.badge}</span>
               )}
             </button>
           ))}
@@ -143,35 +135,25 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-slate-200 px-4 lg:px-6 h-14 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors"
-            >
+            <button onClick={() => setMobileOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors">
               <Menu className="h-5 w-5 text-slate-500" />
             </button>
             <div className="flex items-center gap-1.5 text-sm text-slate-500">
-              <span
-                className="cursor-pointer hover:text-blue-600 transition-colors"
-                onClick={() => setActive("overview")}
-              >
+              <span className="cursor-pointer hover:text-blue-600 transition-colors" onClick={() => setActive("overview")}>
                 Clinical Hub
               </span>
               {active !== "overview" && (
                 <>
                   <ChevronRight className="h-3.5 w-3.5" />
-                  <span className="text-slate-900 font-medium">
-                    {navItems.find(n => n.id === active)?.label}
-                  </span>
+                  <span className="text-slate-900 font-medium">{navItems.find(n => n.id === active)?.label}</span>
                 </>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs hidden sm:flex items-center gap-1.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              All data sources live
-            </Badge>
-          </div>
+          <Badge variant="outline" className="text-xs hidden sm:flex items-center gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            All data sources live
+          </Badge>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
@@ -200,7 +182,7 @@ function Overview({ onNavigate }: { onNavigate: (m: Module) => void }) {
           <h1 className="text-3xl font-bold mb-3">Hakase Clinical Hub</h1>
           <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
             A comprehensive, data-backed platform for accelerating clinical trials — combining real-time intelligence
-            from ClinicalTrials.gov, FDA FAERS, PubMed, and OpenFDA to help you make faster, smarter, 
+            from ClinicalTrials.gov, FDA FAERS, PubMed, and OpenFDA to help you make faster, smarter,
             more data-driven decisions at every stage.
           </p>
           <div className="flex flex-wrap gap-3 mt-5">
@@ -273,8 +255,8 @@ function Overview({ onNavigate }: { onNavigate: (m: Module) => void }) {
             <p className="text-sm font-semibold text-blue-900 mb-1.5">Quick Start Guide</p>
             <ol className="text-sm text-blue-700 space-y-1.5 list-decimal list-inside">
               <li>Use <strong>Trial Explorer</strong> to search for trials relevant to your indication</li>
-              <li>Paste an NCT ID into <strong>Similar Trials</strong> to benchmark and predict success probability</li>
-              <li>Upload your protocol PDF to <strong>Protocol Studio</strong> for compliance scoring and live amendment analysis</li>
+              <li>Upload your protocol PDF to <strong>Protocol Studio</strong> — get compliance scoring, real-world outcome strategies, site recommendations, and KOL discovery all in one place</li>
+              <li>Use <strong>KOL Finder</strong> to identify the leading investigators in your therapeutic area for partnership or advisory board recruitment</li>
               <li>Run an <strong>Enrollment Simulation</strong> to project timelines based on real historical enrollment data</li>
               <li>Check <strong>Safety Intelligence</strong> for the adverse event landscape before finalizing drug selection</li>
             </ol>

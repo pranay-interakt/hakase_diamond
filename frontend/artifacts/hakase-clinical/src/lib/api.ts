@@ -19,9 +19,6 @@ export const searchTrials = (params: Record<string, string | number>) =>
 export const getTrial = (nctId: string) =>
   request<any>(`/trials/${nctId}`);
 
-export const getSimilarTrials = (nctId: string, limit = 15) =>
-  request<any>(`/trials/similar?nct_id=${nctId}&limit=${limit}`);
-
 export const getTrialSites = (nctId: string) =>
   request<any>(`/trials/${nctId}/sites`);
 
@@ -81,6 +78,13 @@ export const recommendSites = (condition: string, phase?: string, countries?: st
   return request<any>(`/sites/recommend?${params}`);
 };
 
+// ── KOLs ──────────────────────────────────────────────────────────────────────
+export const findKOLs = (condition: string, intervention = "", limit = 20) => {
+  const params = new URLSearchParams({ condition, limit: String(limit) });
+  if (intervention) params.set("intervention", intervention);
+  return request<any>(`/kols/find?${params}`);
+};
+
 // ── Protocol ─────────────────────────────────────────────────────────────────
 export const analyzeProtocolText = (body: { text: string; condition?: string; phase?: string[] }) =>
   request<any>("/protocol/analyze-text", { method: "POST", body: JSON.stringify(body) });
@@ -91,6 +95,12 @@ export const analyzeProtocolUpload = async (file: File) => {
   const res = await fetch(`${BASE}/protocol/analyze-upload`, { method: "POST", body: form });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+};
+
+export const getProtocolStrategies = (condition: string, phase?: string, limit = 30) => {
+  const params = new URLSearchParams({ condition, limit: String(limit) });
+  if (phase) params.set("phase", phase);
+  return request<any>(`/protocol/strategies?${params}`);
 };
 
 // ── Data Sources ──────────────────────────────────────────────────────────────

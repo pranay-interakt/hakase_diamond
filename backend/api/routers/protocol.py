@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional
 from ..services.compliance_rules import check_protocol_compliance, calculate_compliance_score
@@ -164,6 +164,83 @@ async def analyze_protocol_upload(file: UploadFile = File(...)):
         "successProbability": success_prob,
         "enrollmentBenchmark": enroll_stats,
         "similarTrials": similar_studies[:10],
+    }
+
+
+@router.get("/strategies")
+async def get_outcome_strategies(
+    condition: str = Query(...),
+    phase: str | None = Query(default=None),
+    limit: int = Query(default=30, le=50),
+):
+    """
+    Returns real outcome strategies used in similar ClinicalTrials.gov trials:
+    primary endpoints, masking/allocation patterns, enrollment benchmarks.
+    """
+    phases = [p.strip().upper() for p in phase.split(",")] if phase else None
+    data = await ctgov.search_studies(
+        condition=condition,
+        phase=phases,
+        status=["COMPLETED", "ACTIVE_NOT_RECRUITING"],
+        page_size=min(limit * 2, 50),
+    )
+    studies = data.get("studies", [])
+
+    strategies = []
+    primary_endpoint_freq: dict[str, int] = {}
+    masking_freq: dict[str, int] = {}
+    allocation_freq: dict[str, int] = {}
+    endpoint_keywords: dict[str, int] = {}
+
+    for raw in studies:
+        core = ctgov.extract_core(raw)
+        proto = raw.get("protocolSection", {})
+        outcomes_mod = proto.get("outcomesModule", {})
+        design_mod = proto.get("designModule", {})
+
+        primary = [o.get("measure", "") for o in outcomes_mod.get("primaryOutcomes", [])]
+        secondary = [o.get("measure", "") for o in outcomes_mod.get("secondaryOutcomes", [])]
+
+        masking = design_mod.get("designInfo", {}).get("maskingInfo", {}).get("masking", "")
+        allocation = design_mod.get("designInfo", {}).get("allocation", "")
+
+        if masking:
+            masking_freq[masking] = masking_freq.get(masking, 0) + 1
+        if allocation:
+            allocation_freq[allocation] = allocation_freq.get(allocation, 0) + 1
+
+        for ep in primary:
+            if ep:
+                primary_endpoint_freq[ep] = primary_endpoint_freq.get(ep, 0) + 1
+                for word in ep.lower().split():
+                    if len(word) > 4:
+                        endpoint_keywords[word] = endpoint_keywords.get(word, 0) + 1
+
+        strategies.append({
+            "nctId": core.get("nctId"),
+            "title": core.get("title", "")[:100],
+            "phase": core.get("phase"),
+            "status": core.get("status"),
+            "enrollment": core.get("enrollmentCount"),
+            "primaryOutcomes": primary[:3],
+            "secondaryOutcomes": secondary[:5],
+            "masking": masking,
+            "allocation": allocation,
+        })
+
+    sorted_eps = sorted(primary_endpoint_freq.items(), key=lambda x: x[1], reverse=True)
+    sorted_kw = sorted(endpoint_keywords.items(), key=lambda x: x[1], reverse=True)
+    STOP_WORDS = {"change", "from", "baseline", "week", "months", "rate", "score", "based", "using", "with", "after"}
+    filtered_kw = [(kw, cnt) for kw, cnt in sorted_kw if kw not in STOP_WORDS]
+
+    return {
+        "condition": condition,
+        "totalTrials": len(strategies),
+        "strategies": strategies[:limit],
+        "topPrimaryEndpoints": [{"endpoint": ep, "count": cnt} for ep, cnt in sorted_eps[:10]],
+        "endpointKeywords": [{"keyword": kw, "count": cnt} for kw, cnt in filtered_kw[:15]],
+        "maskingDistribution": [{"masking": k, "count": v} for k, v in sorted(masking_freq.items(), key=lambda x: x[1], reverse=True)],
+        "allocationDistribution": [{"allocation": k, "count": v} for k, v in sorted(allocation_freq.items(), key=lambda x: x[1], reverse=True)],
     }
 
 

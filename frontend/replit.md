@@ -30,13 +30,13 @@ A comprehensive clinical trial intelligence platform built as a pnpm monorepo (T
 ## Platform Modules (8 modules)
 
 1. **Trial Explorer** — Real-time search of ClinicalTrials.gov
-2. **Similar Trial Intelligence** — NCT ID similarity scoring, success probability, enrollment benchmarking
-3. **Safety Intelligence** — FDA FAERS adverse events, serious outcomes, recall history, temporal trends
-4. **Site Intelligence** — Site recommendations ranked by enrollment rate, startup time, experience
-5. **Regulatory Compliance** — ICH E6/E8/E9, FDA 21 CFR, CONSORT, WHO ICTRP rule checking
-6. **Enrollment Simulation** — Monte Carlo (1K iterations) with rates derived from real ClinicalTrials.gov data
-7. **Evidence Library** — PubMed search with automatic evidence level classification
-8. **Protocol Studio** — PDF upload, entity extraction, compliance scoring, live amendment impact analysis
+2. **Safety Intelligence** — FDA FAERS adverse events, serious outcomes, recall history, temporal trends
+3. **Site Intelligence** — Site recommendations ranked by enrollment rate, startup time, experience
+4. **Regulatory Compliance** — ICH E6/E8/E9, FDA 21 CFR, CONSORT, WHO ICTRP rule checking
+5. **Enrollment Simulation** — Monte Carlo (1K iterations) with rates derived from real ClinicalTrials.gov data
+6. **Evidence Library** — PubMed search with automatic evidence level classification
+7. **KOL Finder** — PubMed authorship mining to identify Key Opinion Leaders by condition/intervention; returns real investigators ranked by publication count + first/senior authorship
+8. **Protocol Studio** — 5-tab powerhouse: Analysis (compliance/success probability), Named Amendments (live re-check with impact delta), Strategies (real endpoint/masking/allocation patterns from ClinicalTrials.gov), Sites (region-selectable site recommendations), KOLs (disease-area investigators)
 
 ## Backend API Routes
 
@@ -62,6 +62,8 @@ POST /api/simulation/protocol-impact
 GET  /api/sites/recommend?condition=
 POST /api/protocol/analyze-upload (PDF upload)
 POST /api/protocol/analyze-text
+GET  /api/protocol/strategies?condition=&phase=
+GET  /api/kols/find?condition=&intervention=&limit=
 ```
 
 ## Workflows

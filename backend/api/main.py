@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import trials, safety, publications, compliance, simulation, sites, protocol
+from .routers import trials, safety, publications, compliance, simulation, sites, protocol, kols
 
 app = FastAPI(
     title="Hakase Clinical Trial Hub API",
@@ -23,6 +23,7 @@ app.include_router(compliance.router, prefix="/api")
 app.include_router(simulation.router, prefix="/api")
 app.include_router(sites.router, prefix="/api")
 app.include_router(protocol.router, prefix="/api")
+app.include_router(kols.router, prefix="/api")
 
 
 @app.get("/api/healthz")
