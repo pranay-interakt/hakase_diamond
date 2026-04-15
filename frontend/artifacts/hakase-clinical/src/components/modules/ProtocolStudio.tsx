@@ -312,16 +312,42 @@ export default function ProtocolStudio() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <div className={`rounded-xl border p-4 text-center ${score.score >= 75 ? "bg-emerald-50 border-emerald-200" : score.score >= 55 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200"}`}>
           <p className="text-xs text-slate-500 mb-1">Compliance Score</p>
           <p className={`text-4xl font-bold ${score.score >= 75 ? "text-emerald-600" : score.score >= 55 ? "text-amber-600" : "text-red-600"}`}>{score.score ?? "—"}</p>
           <p className="text-sm text-slate-500">Grade {score.grade ?? "—"}</p>
         </div>
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-          <p className="text-xs text-slate-500 mb-1">Success Probability</p>
+          <p className="text-xs text-slate-500 mb-1">ML Success Probability</p>
           <p className="text-4xl font-bold text-blue-600">{result.successProbability?.probability ?? "—"}%</p>
-          <p className="text-sm text-slate-500">{result.successProbability?.rating ?? ""}</p>
+          <p className="text-[10px] text-blue-500 font-semibold mt-0.5">{result.successProbability?.method?.replace("GradientBoostingClassifier", "GB Model") ?? result.successProbability?.rating ?? ""}</p>
+          {result.successProbability?.proofLink && (
+            <a href={result.successProbability.proofLink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline">Source ↗</a>
+          )}
+        </div>
+        <div className={`rounded-xl border p-4 text-center ${
+          result.safetyIntelligence?.riskLevel === "LOW" ? "bg-emerald-50 border-emerald-200" :
+          result.safetyIntelligence?.riskLevel === "MODERATE" ? "bg-amber-50 border-amber-200" :
+          result.safetyIntelligence?.riskLevel === "HIGH" ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-200"
+        }`}>
+          <p className="text-xs text-slate-500 mb-1">FAERS Safety Score</p>
+          <p className={`text-4xl font-bold ${result.safetyIntelligence?.riskLevel === "LOW" ? "text-emerald-600" : result.safetyIntelligence?.riskLevel === "HIGH" ? "text-red-600" : "text-amber-600"}`}>
+            {result.safetyIntelligence?.safetyScore ?? "—"}
+          </p>
+          <p className="text-[10px] font-semibold text-slate-500">{result.safetyIntelligence?.riskLevel ?? "UNKNOWN"}</p>
+          {result.safetyIntelligence?.proofLink && (
+            <a href={result.safetyIntelligence.proofLink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline">OpenFDA ↗</a>
+          )}
+        </div>
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-center">
+          <p className="text-xs text-slate-500 mb-1">Literature Maturity</p>
+          <p className="text-4xl font-bold text-purple-600">{result.literatureMaturity?.maturityScore ?? "—"}</p>
+          <p className="text-[10px] font-semibold text-purple-500">{result.literatureMaturity?.tier ?? "—"}</p>
+          {result.literatureMaturity?.proofLink && (
+            <a href={result.literatureMaturity.proofLink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline">{result.literatureMaturity?.articleCount ?? "?"} Papers ↗</a>
+          )}
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
           <p className="text-xs text-slate-500 mb-1">Issues Found</p>
@@ -329,6 +355,7 @@ export default function ProtocolStudio() {
           <p className="text-sm text-slate-500">{score.critical ?? 0} critical</p>
         </div>
       </div>
+
 
       <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
         {TABS.map(t => (
@@ -657,8 +684,87 @@ function AnalysisTab({
         </div>
       </div>
 
+      {/* ── Intelligence Panels (FAERS · PubMed · Data Provenance) ── */}
+      {(result.safetyIntelligence?.topReactions?.length > 0 || result.literatureMaturity?.topReferences?.length > 0 || result.dataProvenance?.sources) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+          {/* Safety Intelligence */}
+          {result.safetyIntelligence && (
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-red-500" />
+                FAERS Safety Signal
+              </h3>
+              <div className="space-y-2">
+                <p className="text-xs text-slate-600 leading-relaxed">{result.safetyIntelligence.reasoning}</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {(result.safetyIntelligence.topReactions || []).map((r: string, i: number) => (
+                    <span key={i} className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
+                      (result.safetyIntelligence.seriousReactions || []).some((s: string) => r.toLowerCase().includes(s))
+                        ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"
+                    }`}>{r}</span>
+                  ))}
+                </div>
+                <p className="text-[9px] text-slate-400"><span className="font-semibold text-slate-600">Method:</span> {result.safetyIntelligence.methodology}</p>
+                {result.safetyIntelligence.proofLink && (
+                  <a href={result.safetyIntelligence.proofLink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-600 hover:underline flex items-center gap-1">
+                    <ExternalLink className="h-2.5 w-2.5" /> OpenFDA FAERS Source
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Literature Maturity */}
+          {result.literatureMaturity && (
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-purple-500" />
+                PubMed Evidence Base
+              </h3>
+              <p className="text-xs text-slate-600 mb-2 leading-relaxed">{result.literatureMaturity.reasoning}</p>
+              <div className="space-y-1.5">
+                {(result.literatureMaturity.topReferences || []).map((ref: any) => (
+                  <a key={ref.pmid} href={ref.url} target="_blank" rel="noopener noreferrer"
+                     className="block bg-purple-50 border border-purple-100 rounded-lg p-2 hover:border-purple-300 transition-colors">
+                    <p className="text-[10px] font-semibold text-slate-800 line-clamp-2">{ref.title}</p>
+                    <p className="text-[9px] text-purple-600 mt-0.5">PMID {ref.pmid} · {ref.year}</p>
+                  </a>
+                ))}
+              </div>
+              {result.literatureMaturity.proofLink && (
+                <a href={result.literatureMaturity.proofLink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-600 hover:underline flex items-center gap-1 mt-2">
+                  <ExternalLink className="h-2.5 w-2.5" /> PubMed Query
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Data Provenance */}
+          {result.dataProvenance?.sources && (
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                <Database className="h-4 w-4 text-blue-500" />
+                Live Data Sources
+              </h3>
+              <div className="space-y-2">
+                {Object.entries(result.dataProvenance.sources).map(([key, source]: [string, any]) => (
+                  <div key={key} className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] text-slate-700 font-medium truncate flex-1">{source}</p>
+                    {result.dataProvenance.proofLinks?.[key] && (
+                      <a href={result.dataProvenance.proofLinks[key]} target="_blank" rel="noopener noreferrer"
+                         className="text-[9px] text-blue-500 hover:underline flex-shrink-0">↗</a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="space-y-6">
         {/* Suggested Amendments */}
+
         {suggestedAmendments.length > 0 && showAmends && (
           <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">

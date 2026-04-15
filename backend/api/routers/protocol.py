@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from typing import Optional
 from ..services.compliance_rules import check_protocol_compliance, calculate_compliance_score
 from ..services import ctgov, analysis
+from ..services import data_hub, deep_learning
 from ..services.protocol_extractor import (
     extract_from_pdf_bytes,
     extract_sections_from_pdf_bytes,
@@ -41,7 +42,7 @@ async def analyze_protocol_upload(file: UploadFile = File(...)):
     if len(content) > 50 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 50 MB)")
 
-    # ── Step 1: PageIndex extraction (structural + regex, no LLM) ──
+    # ── Step 1: PageIndex extraction (structural + regex) ──
     try:
         fields, flat = extract_from_pdf_bytes(content)
     except Exception as exc:
@@ -50,45 +51,38 @@ async def analyze_protocol_upload(file: UploadFile = File(...)):
     if not fields:
         raise HTTPException(status_code=400, detail="Could not parse PDF — no readable text blocks found")
 
-    # ── Step 2: Cross-validate with ClinicalTrials.gov if NCT ID found ──
+    # ── Step 2: NCT cross-validation ──
     nct_field = fields.get("nctId", {})
     nct_id = nct_field.get("value") if isinstance(nct_field, dict) else None
-    ctgov_data = None
     ctgov_core = None
-
     if nct_id:
         try:
-            ctgov_data = await ctgov.get_study(nct_id)
-            ctgov_core = ctgov.extract_core(ctgov_data)
-            # Fill in any missing/low-confidence fields from ClinicalTrials.gov
+            ctgov_raw = await ctgov.get_study(nct_id)
+            ctgov_core = ctgov.extract_core(ctgov_raw)
             flat = _merge_with_ctgov(flat, fields, ctgov_core)
         except Exception:
             ctgov_core = None
 
     report = extraction_report(fields)
 
-    # ── Step 3: Search similar trials (condition + phase from extracted/merged data) ──
+    # ── Step 3: Concurrently fetch all live data sources ──
     search_condition = (flat.get("conditions") or [""])[0] or ""
     phase_list = flat.get("phase") or []
-    similar_studies: list[dict] = []
+    intervention_list = flat.get("interventions") or []
+    search_intervention = intervention_list[0].get("name") if isinstance(intervention_list[0], dict) else str(intervention_list[0]) if intervention_list else ""
 
-    if search_condition:
-        try:
-            sim_data = await ctgov.search_studies(
-                condition=search_condition,
-                phase=phase_list or None,
-                status=["COMPLETED", "TERMINATED", "WITHDRAWN", "ACTIVE_NOT_RECRUITING"],
-                page_size=30,
-            )
-            similar_studies = [ctgov.extract_core(s) for s in sim_data.get("studies", [])]
-        except Exception:
-            pass
+    hub = await data_hub.fetch_all(
+        condition=search_condition,
+        intervention=search_intervention,
+        phase=phase_list,
+    )
 
-    # ── Step 4: Compliance check and success probability ──
+    # ── Step 4: Deep Learning reasoning on live corpus ──
+    dl_report = deep_learning.reason(flat, hub)
+
+    # ── Step 5: Compliance check ──
     issues = check_protocol_compliance(flat)
     score = calculate_compliance_score(issues)
-    success_prob = analysis.compute_success_probability(flat, similar_studies)
-    enroll_stats = analysis.compute_enrollment_stats(similar_studies)
 
     return {
         "parsed": {
@@ -102,9 +96,20 @@ async def analyze_protocol_upload(file: UploadFile = File(...)):
             "score": score,
             "issues": [_format_issue(i) for i in issues],
         },
-        "successProbability": success_prob,
-        "enrollmentBenchmark": enroll_stats,
-        "similarTrials": similar_studies[:10],
+        # DL-powered outputs with proofs
+        "successProbability": {
+            **dl_report["outcomePrediction"],
+            "rating": "High" if dl_report["outcomePrediction"].get("probability", 0) >= 70 else "Moderate" if dl_report["outcomePrediction"].get("probability", 0) >= 45 else "Low",
+        },
+        "safetyIntelligence": dl_report["safetyIntelligence"],
+        "literatureMaturity": dl_report["literatureMaturity"],
+        "enrollmentSimulation": dl_report["enrollmentSimulation"],
+        "enrollmentBenchmark": dl_report["enrollmentStats"],
+        "similarTrials": dl_report["similarTrials"][:12],
+        "dataProvenance": {
+            "sources": dl_report["hubSources"],
+            "proofLinks": dl_report["hubProofLinks"],
+        },
     }
 
 
@@ -120,29 +125,24 @@ class ProtocolTextInput(BaseModel):
 
 @router.post("/analyze-text")
 async def analyze_protocol_text(body: ProtocolTextInput):
-    # For plain text: use the section extractor with a synthetic single-section map
     sections = {"__full__": body.text}
-
-    # Try to detect sub-sections from text headings
     _detect_text_sections(body.text, sections)
 
     fields = extract_protocol_fields(sections)
     flat = flatten_extracted(fields)
 
-    # Override with user-provided values
     if body.condition:
         flat["conditions"] = [body.condition]
     if body.phase:
         flat["phase"] = body.phase
 
-    # NCT ID cross-validation
     nct_field = fields.get("nctId", {})
     nct_id = nct_field.get("value") if isinstance(nct_field, dict) else None
     ctgov_core = None
     if nct_id:
         try:
-            ctgov_data = await ctgov.get_study(nct_id)
-            ctgov_core = ctgov.extract_core(ctgov_data)
+            ctgov_raw = await ctgov.get_study(nct_id)
+            ctgov_core = ctgov.extract_core(ctgov_raw)
             flat = _merge_with_ctgov(flat, fields, ctgov_core)
         except Exception:
             pass
@@ -167,7 +167,7 @@ async def analyze_protocol_text(body: ProtocolTextInput):
 
     issues = check_protocol_compliance(flat)
     score = calculate_compliance_score(issues)
-    success_prob = analysis.compute_success_probability(flat, similar_studies)
+    success_prob = analysis.compute_success_probability(flat, similar_studies, fda_data, pubmed_data)
 
     return {
         "parsed": {**flat, "__extractionMeta": fields.get("__meta__")},
