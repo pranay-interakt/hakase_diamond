@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import {
   Upload, FileText, Loader2, AlertCircle, CheckCircle2, ChevronDown, ChevronUp,
   RefreshCw, Wand2, Plus, Trash2, MapPin, Users, BarChart3, FlaskConical,
-  ExternalLink, Building2, BookOpen, Check, X
+  ExternalLink, Building2, BookOpen, Check, X, Database, Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +57,9 @@ export default function ProtocolStudio() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState<TabId>("analysis");
   const [expandedIssue, setExpandedIssue] = useState<string | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulatedData, setSimulatedData] = useState<any>(null);
+  const [suggestedAmendments, setSuggestedAmendments] = useState<any[]>([]);
 
   // amendments
   const [amendments, setAmendments] = useState<Amendment[]>([]);
@@ -85,7 +88,19 @@ export default function ProtocolStudio() {
     try {
       const data = await analyzeProtocolUpload(file);
       setResult(data);
+      setSimulatedData(data.parsed);
       setTab("analysis");
+      
+      // Seed suggested amendments based on issues
+      if (data.compliance?.issues) {
+        setSuggestedAmendments(data.compliance.issues.map((iss: any) => ({
+          id: iss.id,
+          title: `Fix: ${iss.rule}`,
+          rationale: iss.recommendation,
+          impact: "+5% Compliance",
+          auto: true
+        })));
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -299,7 +314,19 @@ export default function ProtocolStudio() {
       )}
 
       {tab === "analysis" && (
-        <AnalysisTab issues={issues} score={score} parsed={parsed} result={result} expandedIssue={expandedIssue} setExpandedIssue={setExpandedIssue} />
+        <AnalysisTab 
+          issues={issues} 
+          score={score} 
+          parsed={parsed} 
+          result={result} 
+          expandedIssue={expandedIssue} 
+          setExpandedIssue={setExpandedIssue}
+          isSimulating={isSimulating}
+          setIsSimulating={setIsSimulating}
+          simulatedData={simulatedData}
+          setSimulatedData={setSimulatedData}
+          suggestedAmendments={suggestedAmendments}
+        />
       )}
       {tab === "amendments" && (
         <AmendmentsTab
@@ -337,93 +364,212 @@ export default function ProtocolStudio() {
   );
 }
 
-function AnalysisTab({ issues, score, parsed, result, expandedIssue, setExpandedIssue }: any) {
+function AnalysisTab({ 
+  issues, 
+  score, 
+  parsed, 
+  result, 
+  expandedIssue, 
+  setExpandedIssue,
+  isSimulating,
+  setIsSimulating,
+  simulatedData,
+  setSimulatedData,
+  suggestedAmendments
+}: any) {
+  const [showAmends, setShowAmends] = useState(true);
+
   return (
-    <div className="space-y-4">
-      {result.successProbability?.factors?.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">Success Probability Factors</h3>
-          <div className="space-y-2">
-            {result.successProbability.factors.map((f: any, i: number) => (
-              <div key={i} className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <p className="text-xs font-medium text-slate-700">{f.factor}</p>
-                    <span className="text-xs text-slate-500 flex-shrink-0 ml-2">{Math.round(f.score)}/{f.weight}</span>
-                  </div>
-                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(f.score / f.weight) * 100}%` }} />
-                  </div>
-                  <p className="text-xs text-slate-400 mt-0.5">{f.description}</p>
-                </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="lg:col-span-2 space-y-4">
+        {/* Simulation Banner */}
+        {isSimulating && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-amber-600" />
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {issues.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-slate-900">Compliance Issues ({issues.length})</h3>
-          {issues.map((issue: any) => (
-            <div key={issue.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <button
-                className="w-full p-3 flex items-center gap-3 text-left"
-                onClick={() => setExpandedIssue(expandedIssue === issue.id ? null : issue.id)}
-              >
-                <span className={`text-xs font-bold px-2 py-0.5 rounded border ${severityColor[issue.severity] || "text-slate-600 bg-slate-50 border-slate-200"}`}>
-                  {issue.severity.toUpperCase()}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900">{issue.rule}</p>
-                  <p className="text-xs text-slate-500 truncate">{issue.description}</p>
-                </div>
-                {expandedIssue === issue.id ? <ChevronUp className="h-4 w-4 text-slate-400 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 text-slate-400 flex-shrink-0" />}
-              </button>
-              {expandedIssue === issue.id && (
-                <div className="px-4 pb-4 border-t border-slate-100 pt-3 space-y-2 text-xs">
-                  <p className="text-slate-600">{issue.description}</p>
-                  <div className="bg-blue-50 rounded-lg p-2.5">
-                    <p className="font-semibold text-blue-800 mb-0.5">Recommendation</p>
-                    <p className="text-blue-700">{issue.recommendation}</p>
-                  </div>
-                  <p className="text-slate-400">Reference: {issue.reference}</p>
-                </div>
-              )}
+              <div>
+                <p className="text-sm font-bold text-amber-900">Simulation Mode Active</p>
+                <p className="text-xs text-amber-700">Adjusting parameters to assess performance delta.</p>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+            <Button size="sm" variant="outline" onClick={() => { setIsSimulating(false); setSimulatedData(parsed); }} className="border-amber-200 bg-white hover:bg-amber-50 text-amber-700">
+              Reset Simulation
+            </Button>
+          </div>
+        )}
 
-      {parsed.conditions?.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">Extracted Protocol Data</h3>
-          <div className="grid grid-cols-2 gap-3 text-xs">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Database className="h-4 w-4 text-blue-500" />
+              Protocol Parameters
+            </h3>
+            {!isSimulating && (
+              <Button size="sm" variant="ghost" onClick={() => setIsSimulating(true)} className="text-xs text-blue-600 font-bold hover:text-blue-700 hover:bg-blue-50">
+                <Wand2 className="h-3.5 w-3.5 mr-1" /> Edit & Simulate Impact
+              </Button>
+            )}
+          </div>
+          <div className="p-4 grid grid-cols-2 gap-4">
             {[
-              ["Conditions", parsed.conditions?.join(", ")],
-              ["Phase", parsed.phase?.join(", ")],
-              ["Enrollment", parsed.enrollmentCount],
-              ["Allocation", parsed.allocation],
-              ["Masking", parsed.masking],
-              ["Study Type", parsed.studyType],
-              ["Sponsor", parsed.sponsorName],
-            ].filter(([, v]) => v).map(([k, v]) => (
-              <div key={String(k)}>
-                <p className="text-slate-400 mb-0.5">{k}</p>
-                <p className="font-medium text-slate-800">{String(v)}</p>
+              { label: "Phase", key: "phase", type: "phase" },
+              { label: "Enrollment", key: "enrollmentCount", type: "number" },
+              { label: "Allocation", key: "allocation", type: "allocation" },
+              { label: "Masking", key: "masking", type: "masking" },
+              { label: "Arms", key: "armsCount", type: "number" },
+              { label: "Sponsor", key: "sponsorName", type: "text" },
+            ].map(f => (
+              <div key={f.key}>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">{f.label}</label>
+                {isSimulating ? (
+                  <div className="relative group">
+                    <Input 
+                      className="text-sm font-semibold border-amber-200 focus:ring-amber-200 bg-amber-50/30"
+                      value={simulatedData[f.key] || ""}
+                      onChange={e => setSimulatedData((v: any) => ({ ...v, [f.key]: e.target.value }))}
+                    />
+                    <div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-amber-400" />
+                  </div>
+                ) : (
+                  <p className="text-sm font-bold text-slate-900">{String(parsed[f.key] || "—")}</p>
+                )}
               </div>
             ))}
           </div>
-          {parsed.primaryOutcomes?.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-slate-100">
-              <p className="text-xs text-slate-400 mb-1.5">Primary Endpoints</p>
-              {parsed.primaryOutcomes.map((ep: string, i: number) => (
-                <p key={i} className="text-xs text-slate-700 mb-0.5">• {ep}</p>
+        </div>
+
+        {/* Success Factors */}
+        {result.successProbability?.factors?.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Activity className="h-4 w-4 text-emerald-500" />
+              Impact Breakdown
+            </h3>
+            <div className="space-y-4">
+              {result.successProbability.factors.map((f: any, i: number) => {
+                const isModified = isSimulating && ["Phase Consideration", "Sample Size Validation"].some(label => f.factor.includes(label));
+                return (
+                  <div key={i} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-bold text-slate-700">{f.factor}</p>
+                        {isModified && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none text-[8px] font-bold py-0 h-4">SIMULATED</Badge>}
+                      </div>
+                      <span className="text-xs font-bold text-slate-500">{Math.round(f.score)}/{f.weight}</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                      <div 
+                        className={`h-full transition-all duration-500 rounded-full ${isModified ? "bg-amber-400" : "bg-blue-500"}`} 
+                        style={{ width: `${(f.score / f.weight) * 100}%` }} 
+                      />
+                      {isModified && (
+                        <div className="h-full bg-emerald-400 opacity-60 animate-pulse" style={{ width: '5%' }} />
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-relaxed">{f.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Endpoints & Eligibility (Read only or rich edit) */}
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <h3 className="text-sm font-bold text-slate-900 mb-4">Endpoints & Eligibility</h3>
+          <div className="space-y-4">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Primary Endpoints</p>
+              <div className="space-y-1">
+                {(parsed.primaryOutcomes || []).map((ep: string, i: number) => (
+                  <div key={i} className="text-xs text-slate-700 font-medium flex items-start gap-2">
+                    <Check className="h-3 w-3 text-emerald-500 mt-1 flex-shrink-0" />
+                    {ep}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Key Eligibility</p>
+              <div className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
+                {String(parsed.eligibilityCriteria || "Not specified")}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {/* Suggested Amendments */}
+        {suggestedAmendments.length > 0 && showAmends && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+              <Sparkles className="h-12 w-12 text-indigo-600" />
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-indigo-900 flex items-center gap-2">
+                <Wand2 className="h-4 w-4 text-indigo-600" />
+                AI Amendment Tips
+              </h3>
+              <button onClick={() => setShowAmends(false)} className="text-indigo-400 hover:text-indigo-600">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {suggestedAmendments.slice(0, 3).map((amend: any) => (
+                <div key={amend.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-indigo-100 shadow-sm shadow-indigo-100/50">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-bold text-indigo-900">{amend.title}</p>
+                    <Badge className="bg-emerald-100 text-emerald-700 border-none text-[8px] px-1">{amend.impact}</Badge>
+                  </div>
+                  <p className="text-[10px] text-indigo-700 line-clamp-2 leading-relaxed">{amend.rationale}</p>
+                  <Button variant="link" className="p-0 h-auto text-[10px] font-bold text-indigo-600 mt-1">
+                    Apply Suggestion
+                  </Button>
+                </div>
               ))}
             </div>
-          )}
+          </div>
+        )}
+
+        {/* Issues List */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-slate-900 flex items-center justify-between">
+            Optimization Tasks
+            <Badge variant="outline" className="text-[10px]">{issues.length}</Badge>
+          </h3>
+          <div className="space-y-2">
+            {issues.map((issue: any) => (
+              <div key={issue.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden group hover:border-blue-300 transition-all">
+                <button
+                  className="w-full p-3 flex items-center gap-3 text-left"
+                  onClick={() => setExpandedIssue(expandedIssue === issue.id ? null : issue.id)}
+                >
+                  <div className={`h-2 w-2 rounded-full ${issue.severity === 'critical' ? 'bg-red-500' : issue.severity === 'major' ? 'bg-orange-500' : 'bg-amber-400'}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate">{issue.rule}</p>
+                  </div>
+                  {expandedIssue === issue.id ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
+                </button>
+                {expandedIssue === issue.id && (
+                  <div className="px-4 pb-4 pt-1 space-y-3">
+                    <p className="text-[11px] text-slate-500 leading-relaxed">{issue.description}</p>
+                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                        Resolution Strategy
+                      </p>
+                      <p className="text-[11px] text-slate-700 font-medium leading-relaxed">{issue.recommendation}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

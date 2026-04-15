@@ -14,17 +14,14 @@ import EnrollmentSimulation from "@/components/modules/EnrollmentSimulation";
 import EvidenceLibrary from "@/components/modules/EvidenceLibrary";
 import ProtocolStudio from "@/components/modules/ProtocolStudio";
 import KOLFinder from "@/components/modules/KOLFinder";
+import Bridge from "@/components/modules/Bridge";
+import RegulatoryAI from "@/components/modules/RegulatoryAI";
 
 type Module =
-  | "overview"
-  | "explorer"
-  | "safety"
-  | "sites"
-  | "compliance"
-  | "simulation"
-  | "evidence"
   | "protocol"
-  | "kols";
+  | "kols"
+  | "bridge"
+  | "regulatory";
 
 const navGroups: { label?: string; items: { id: Module; label: string; icon: React.ReactNode; badge?: string }[] }[] = [
   {
@@ -45,9 +42,16 @@ const navGroups: { label?: string; items: { id: Module; label: string; icon: Rea
   {
     label: "Operations",
     items: [
-      { id: "compliance",  label: "Compliance",          icon: <CheckCircle2 className="h-4 w-4" /> },
-      { id: "simulation",  label: "Enrollment Sim",      icon: <TrendingUp className="h-4 w-4" /> },
       { id: "protocol",    label: "Protocol Studio",     icon: <FileText className="h-4 w-4" />, badge: "AI" },
+      { id: "simulation",  label: "Enrollment Sim",      icon: <TrendingUp className="h-4 w-4" /> },
+      { id: "compliance",  label: "Compliance",          icon: <CheckCircle2 className="h-4 w-4" /> },
+      { id: "regulatory",  label: "Regulatory AI",       icon: <FlaskConical className="h-4 w-4" /> },
+    ],
+  },
+  {
+    label: "Ecosystem",
+    items: [
+      { id: "bridge",      label: "Hakase Bridge",       icon: <Globe className="h-4 w-4" />, badge: "NEW" },
     ],
   },
 ];
@@ -62,7 +66,9 @@ const features: { icon: React.ReactNode; title: string; desc: string; module: Mo
   { icon: <TrendingUp className="h-5 w-5 text-cyan-500" />, title: "Enrollment Simulation", desc: "1,000-iteration Monte Carlo simulation. Rates auto-derived from real completed trials. P10/P50/P90 timelines.", module: "simulation" },
   { icon: <BookOpen className="h-5 w-5 text-violet-500" />, title: "Evidence Library", desc: "Mine 36M+ PubMed articles with automatic evidence level classification — meta-analyses, Phase 3 RCTs ranked first.", module: "evidence" },
   { icon: <Users className="h-5 w-5 text-indigo-500" />, title: "KOL Finder", desc: "Identify Key Opinion Leaders by mining PubMed authorship data — ranked by publications, first/senior authorship, and clinical trial involvement.", module: "kols" },
-  { icon: <FileText className="h-5 w-5 text-pink-500" />, title: "Protocol Studio", desc: "Upload protocol PDFs for compliance analysis, named amendment tracking, real-world strategies, site recommendations, and KOL discovery.", module: "protocol" },
+  { icon: <FileText className="h-5 w-5 text-pink-500" />, title: "Protocol Studio", desc: "Upload protocol PDFs for compliance analysis, manual parameter simulation, strategy tracking, and AI amendments.", module: "protocol" },
+  { icon: <Globe className="h-5 w-5 text-sky-500" />, title: "Hakase Bridge", desc: "Directly import trial configurations from Hakase.bio Layer 4 for immersive cross-platform analysis and optimization.", module: "bridge" },
+  { icon: <FlaskConical className="h-5 w-5 text-amber-500" />, title: "Regulatory AI", desc: "Navigate FDA/EMA requirements with AI-generated roadmaps, pre-IND checklist verification, and dossier preparation assistance.", module: "regulatory" },
 ];
 
 export default function Dashboard() {
@@ -79,6 +85,8 @@ export default function Dashboard() {
       case "evidence":    return <EvidenceLibrary />;
       case "kols":        return <KOLFinder />;
       case "protocol":    return <ProtocolStudio />;
+      case "bridge":      return <Bridge />;
+      case "regulatory":  return <RegulatoryAI />;
       default:            return <Overview onNavigate={m => setActive(m)} />;
     }
   };
@@ -108,7 +116,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-[13px] font-bold text-white tracking-tight leading-tight">hakase AI</p>
-                <p className="text-[10px] font-medium mt-0.5" style={{ color: "#475569" }}>Clinical Trial Hub</p>
+                <p className="text-[10px] font-semibold mt-0.5" style={{ color: "#94a3b8" }}>Clinical Trial Hub</p>
               </div>
             </div>
             <button onClick={() => setMobileOpen(false)} className="lg:hidden flex items-center justify-center w-7 h-7 rounded-lg transition-colors" style={{ background: "rgba(255,255,255,0.04)" }}>
@@ -121,7 +129,7 @@ export default function Dashboard() {
           {navGroups.map((group, gi) => (
             <div key={gi}>
               {group.label && (
-                <p className="px-3 mb-2 text-[9px] font-bold uppercase tracking-[0.12em]" style={{ color: "#1e3a5f" }}>
+                <p className="px-3 mb-2 text-[9px] font-bold uppercase tracking-[0.12em]" style={{ color: "#475569" }}>
                   {group.label}
                 </p>
               )}
@@ -160,16 +168,16 @@ export default function Dashboard() {
                         style={{
                           background: isActive
                             ? "linear-gradient(135deg,#3b82f6,#6366f1)"
-                            : "rgba(255,255,255,0.04)",
+                            : "rgba(255,255,255,0.08)",
                           boxShadow: isActive ? "0 0 12px rgba(99,102,241,0.35)" : "none",
                         }}
                       >
-                        <span style={{ color: isActive ? "#fff" : "#475569" }}>{item.icon}</span>
+                        <span style={{ color: isActive ? "#fff" : "#cbd5e1" }}>{item.icon}</span>
                       </span>
 
                       <span
-                        className="flex-1 text-[13px] font-medium tracking-tight"
-                        style={{ color: isActive ? "#f1f5f9" : "#64748b" }}
+                        className="flex-1 text-[13px] font-semibold tracking-tight"
+                        style={{ color: isActive ? "#fff" : "#cbd5e1" }}
                       >
                         {item.label}
                       </span>
@@ -194,8 +202,8 @@ export default function Dashboard() {
           <div className="rounded-xl px-3.5 py-3" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(148,163,184,0.07)" }}>
             <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-1.5">
-                <Globe className="h-3 w-3" style={{ color: "#34d399" }} />
-                <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#334155" }}>Live sources</span>
+                <Globe className="h-3 w-3" style={{ color: "#6ee7b7" }} />
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#cbd5e1" }}>Live sources</span>
               </div>
               <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: "#34d399" }} />
             </div>
@@ -208,7 +216,7 @@ export default function Dashboard() {
               ].map(src => (
                 <div key={src.name} className="flex items-center gap-1.5 min-w-0">
                   <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: src.dot }} />
-                  <span className="text-[10px] truncate" style={{ color: "#334155" }}>{src.name}</span>
+                  <span className="text-[10px] truncate font-medium" style={{ color: "#94a3b8" }}>{src.name}</span>
                 </div>
               ))}
             </div>
