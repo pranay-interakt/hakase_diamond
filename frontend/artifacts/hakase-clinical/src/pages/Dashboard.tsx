@@ -119,7 +119,7 @@ export default function Dashboard() {
               className="h-7 w-auto object-contain mx-auto"
               style={{ background: "transparent" }}
             />
-            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#475569", letterSpacing: "0.12em" }}>Clinical Trial Hub</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-200" style={{ letterSpacing: "0.12em" }}>Clinical Trial Hub</p>
           </div>
           <button onClick={() => setMobileOpen(false)} className="lg:hidden absolute right-4 top-5 w-6 h-6 flex items-center justify-center rounded" style={{ color: "#64748b" }}>
             <X className="h-3.5 w-3.5" />
