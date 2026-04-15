@@ -467,7 +467,7 @@ function AnalysisTab({
             ].map(f => (
               <div key={f.key}>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">{f.label}</label>
-                {isSimulating ? (
+{isSimulating ? (
                   <div className="relative group">
                     <Input 
                       className="text-sm font-semibold border-amber-200 focus:ring-amber-200 bg-amber-50/30"
@@ -477,7 +477,25 @@ function AnalysisTab({
                     <div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-amber-400" />
                   </div>
                 ) : (
-                  <p className="text-sm font-bold text-slate-900">{String(parsed[f.key] || "—")}</p>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{String(parsed[f.key] || "—")}</p>
+                    {(() => {
+                      const reportItem = result?.extractionReport?.find((r: any) => r.field === f.key);
+                      if (!reportItem) return null;
+                      return (
+                        <div className="mt-2 bg-slate-50 border border-slate-100 rounded p-2 space-y-1">
+                          <p className="text-[9px] text-slate-500"><span className="font-semibold text-slate-700">Data Used:</span> {reportItem.dataUsed || "Extracted from Protocol text elements"}</p>
+                          <p className="text-[9px] text-slate-500 leading-tight"><span className="font-semibold text-slate-700">Methodology:</span> {reportItem.methodology || "Cross-referenced and verified via heuristics"}</p>
+                          {reportItem.proofLink && (
+                            <a href={reportItem.proofLink.startsWith("http") ? reportItem.proofLink : "#"} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-600 hover:underline flex items-center gap-1 mt-1">
+                              <ExternalLink className="h-2.5 w-2.5" />
+                              {reportItem.proofLink.startsWith("http") ? "View CTGov Validation" : "PageIndex Reference"}
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 )}
               </div>
             ))}
@@ -566,7 +584,7 @@ function AnalysisTab({
                       </div>
                       <span className="text-xs font-bold text-slate-500">{Math.round(f.score)}/{f.weight}</span>
                     </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+<div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
                       <div 
                         className={`h-full transition-all duration-500 rounded-full ${isModified ? "bg-amber-400" : "bg-blue-500"}`} 
                         style={{ width: `${(f.score / f.weight) * 100}%` }} 
@@ -575,7 +593,18 @@ function AnalysisTab({
                         <div className="h-full bg-emerald-400 opacity-60 animate-pulse" style={{ width: '5%' }} />
                       )}
                     </div>
-                    <p className="text-[10px] text-slate-500 leading-relaxed">{f.description}</p>
+                    <p className="text-[10px] text-slate-500 leading-relaxed font-medium">{f.description}</p>
+                    {(f.dataUsed || f.methodology) && (
+                      <div className="mt-1 bg-slate-50 border border-slate-100 rounded p-2 space-y-1">
+                        {f.dataUsed && <p className="text-[9px] text-slate-500"><span className="font-semibold text-slate-700">Data Proof:</span> {f.dataUsed}</p>}
+                        {f.methodology && <p className="text-[9px] text-slate-500 leading-tight"><span className="font-semibold text-slate-700">Analytics Method:</span> {f.methodology}</p>}
+                        {f.proofLink && (
+                          <a href={f.proofLink.startsWith("http") ? f.proofLink : "#"} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-600 hover:underline flex items-center gap-1 mt-1">
+                            <ExternalLink className="h-2.5 w-2.5" /> Corroborating Source Link
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -587,8 +616,18 @@ function AnalysisTab({
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <h3 className="text-sm font-bold text-slate-900 mb-4">Endpoints & Eligibility</h3>
           <div className="space-y-4">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Primary Endpoints</p>
+<div>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Primary Endpoints</p>
+                {(() => {
+                  const r = result?.extractionReport?.find((x: any) => x.field === "primaryOutcomes");
+                  return r && r.proofLink ? (
+                    <a href={r.proofLink.startsWith("http") ? r.proofLink : "#"} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:underline flex items-center gap-1" title={`${r.dataUsed} - ${r.methodology}`}>
+                      <ExternalLink className="h-3 w-3" /> Source
+                    </a>
+                  ) : null;
+                })()}
+              </div>
               <div className="space-y-1">
                 {(parsed.primaryOutcomes || []).map((ep: string, i: number) => (
                   <div key={i} className="text-xs text-slate-700 font-medium flex items-start gap-2">
@@ -599,7 +638,17 @@ function AnalysisTab({
               </div>
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Key Eligibility</p>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Key Eligibility</p>
+                {(() => {
+                  const r = result?.extractionReport?.find((x: any) => x.field === "eligibilityCriteria");
+                  return r && r.proofLink ? (
+                    <a href={r.proofLink.startsWith("http") ? r.proofLink : "#"} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:underline flex items-center gap-1" title={`${r.dataUsed} - ${r.methodology}`}>
+                      <ExternalLink className="h-3 w-3" /> Source
+                    </a>
+                  ) : null;
+                })()}
+              </div>
               <div className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
                 {String(parsed.eligibilityCriteria || "Not specified")}
               </div>

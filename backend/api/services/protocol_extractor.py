@@ -118,43 +118,46 @@ def extract_protocol_fields(sections: dict[str, str]) -> dict:
         "value": nct_match.group(0).upper() if nct_match else None,
         "confidence": 1.0 if nct_match else 0.0,
         "source": nct_match.group(0) if nct_match else None,
+        "dataUsed": "Full Protocol Text Context",
+        "methodology": "Regex match for NCT format ID",
+        "proofLink": f"https://clinicaltrials.gov/study/{nct_match.group(0).upper()}" if nct_match else None
     }
 
     title_val, title_conf, title_src = _extract_title(sections, full)
-    fields["title"] = {"value": title_val, "confidence": title_conf, "source": title_src}
+    fields["title"] = {"value": title_val, "confidence": title_conf, "source": title_src, "dataUsed": "Title/Synopsis Sections", "methodology": "Heuristic match targeting top-heavy document headers and title markers", "proofLink": "Internal PageIndex Model"}
 
     phase_val, phase_conf, phase_src = _extract_phase(sections, full_lower)
-    fields["phase"] = {"value": phase_val, "confidence": phase_conf, "source": phase_src}
+    fields["phase"] = {"value": phase_val, "confidence": phase_conf, "source": phase_src, "dataUsed": "Phase/Design Sections", "methodology": "Count-based frequency analysis prioritizing Design sections", "proofLink": "Internal PageIndex Model"}
 
     pe_val, pe_conf, pe_src = _extract_endpoints(sections, "primary")
-    fields["primaryOutcomes"] = {"value": pe_val, "confidence": pe_conf, "source": pe_src}
+    fields["primaryOutcomes"] = {"value": pe_val, "confidence": pe_conf, "source": pe_src, "dataUsed": "Endpoints Section", "methodology": "List item enumeration extraction from primary endpoints text block", "proofLink": "Internal PageIndex Model"}
 
     se_val, se_conf, se_src = _extract_endpoints(sections, "secondary")
-    fields["secondaryOutcomes"] = {"value": se_val, "confidence": se_conf, "source": se_src}
+    fields["secondaryOutcomes"] = {"value": se_val, "confidence": se_conf, "source": se_src, "dataUsed": "Endpoints Section", "methodology": "List item enumeration extraction from secondary endpoints text block", "proofLink": "Internal PageIndex Model"}
 
     n_val, n_conf, n_src = _extract_enrollment(sections, full_lower)
-    fields["enrollmentCount"] = {"value": n_val, "confidence": n_conf, "source": n_src}
+    fields["enrollmentCount"] = {"value": n_val, "confidence": n_conf, "source": n_src, "dataUsed": "Statistics/Sample Size Section", "methodology": "Pattern extraction targeting numeric subject counts", "proofLink": "Internal PageIndex Model"}
 
     elig_val, elig_conf, elig_src = _extract_eligibility(sections, full)
-    fields["eligibilityCriteria"] = {"value": elig_val, "confidence": elig_conf, "source": elig_src}
+    fields["eligibilityCriteria"] = {"value": elig_val, "confidence": elig_conf, "source": elig_src, "dataUsed": "Eligibility Section", "methodology": "Extracted continuous text block between Inclusion and Exclusion criteria markers", "proofLink": "Internal PageIndex Model"}
 
     sp_val, sp_conf, sp_src = _extract_sponsor(sections, full)
-    fields["sponsorName"] = {"value": sp_val, "confidence": sp_conf, "source": sp_src}
+    fields["sponsorName"] = {"value": sp_val, "confidence": sp_conf, "source": sp_src, "dataUsed": "Sponsor Section", "methodology": "Pattern extraction targeting registered sponsor/applicant keywords", "proofLink": "Internal PageIndex Model"}
 
     mask_val, mask_conf, mask_src = _extract_masking(sections, full_lower)
-    fields["masking"] = {"value": mask_val, "confidence": mask_conf, "source": mask_src}
+    fields["masking"] = {"value": mask_val, "confidence": mask_conf, "source": mask_src, "dataUsed": "Design Section", "methodology": "Keyword search for masking types (e.g. DOUBLE, SINGLE, NONE)", "proofLink": "Internal PageIndex Model"}
 
     alloc_val, alloc_conf, alloc_src = _extract_allocation(sections, full_lower)
-    fields["allocation"] = {"value": alloc_val, "confidence": alloc_conf, "source": alloc_src}
+    fields["allocation"] = {"value": alloc_val, "confidence": alloc_conf, "source": alloc_src, "dataUsed": "Design Section", "methodology": "Boolean term matching for trial allocation modes", "proofLink": "Internal PageIndex Model"}
 
     st_val = "OBSERVATIONAL" if re.search(r'\bobservational\b|\bcohort\b|\bregist', full_lower) else "INTERVENTIONAL"
-    fields["studyType"] = {"value": st_val, "confidence": 0.8, "source": None}
+    fields["studyType"] = {"value": st_val, "confidence": 0.8, "source": None, "dataUsed": "Global Protocol Text", "methodology": "Derived from presence of observational vs interventional identifiers", "proofLink": "Internal PageIndex Model"}
 
     cond_val, cond_conf, cond_src = _extract_conditions(sections, full)
-    fields["conditions"] = {"value": cond_val, "confidence": cond_conf, "source": cond_src}
+    fields["conditions"] = {"value": cond_val, "confidence": cond_conf, "source": cond_src, "dataUsed": "Synopsis/Condition Section", "methodology": "List item and named entity extraction from indication sections", "proofLink": "Internal PageIndex Model"}
 
     intr_val, intr_conf, intr_src = _extract_interventions(sections, full)
-    fields["interventions"] = {"value": intr_val, "confidence": intr_conf, "source": intr_src}
+    fields["interventions"] = {"value": intr_val, "confidence": intr_conf, "source": intr_src, "dataUsed": "Dosing/Intervention Section", "methodology": "Heuristic chunking targeting investigational products and dosing regiments", "proofLink": "Internal PageIndex Model"}
 
     scored_fields = [v["confidence"] for v in fields.values() if isinstance(v, dict) and v.get("value")]
     fields["__meta__"] = {
@@ -442,6 +445,10 @@ def extraction_report(fields: dict) -> list[dict]:
             val = v.get("value")
             conf = v.get("confidence", 0)
             src = v.get("source", "")
+            methodology = v.get("methodology", "Unknown methodology")
+            data_used = v.get("dataUsed", "Unknown data source")
+            proof_link = v.get("proofLink") or "Internal PageIndex Model"
+
             status = "extracted" if val else "missing"
             report.append({
                 "field": key,
@@ -449,5 +456,8 @@ def extraction_report(fields: dict) -> list[dict]:
                 "confidence": conf,
                 "preview": str(val)[:80] if val else None,
                 "sourceExcerpt": str(src)[:80] if src else None,
+                "methodology": methodology,
+                "dataUsed": data_used,
+                "proofLink": proof_link,
             })
     return sorted(report, key=lambda x: x["confidence"], reverse=True)

@@ -50,8 +50,6 @@ async def analyze_protocol_upload(file: UploadFile = File(...)):
     if not fields:
         raise HTTPException(status_code=400, detail="Could not parse PDF — no readable text blocks found")
 
-    report = extraction_report(fields)
-
     # ── Step 2: Cross-validate with ClinicalTrials.gov if NCT ID found ──
     nct_field = fields.get("nctId", {})
     nct_id = nct_field.get("value") if isinstance(nct_field, dict) else None
@@ -66,6 +64,8 @@ async def analyze_protocol_upload(file: UploadFile = File(...)):
             flat = _merge_with_ctgov(flat, fields, ctgov_core)
         except Exception:
             ctgov_core = None
+
+    report = extraction_report(fields)
 
     # ── Step 3: Search similar trials (condition + phase from extracted/merged data) ──
     search_condition = (flat.get("conditions") or [""])[0] or ""
@@ -127,7 +127,6 @@ async def analyze_protocol_text(body: ProtocolTextInput):
     _detect_text_sections(body.text, sections)
 
     fields = extract_protocol_fields(sections)
-    report = extraction_report(fields)
     flat = flatten_extracted(fields)
 
     # Override with user-provided values
@@ -147,6 +146,8 @@ async def analyze_protocol_text(body: ProtocolTextInput):
             flat = _merge_with_ctgov(flat, fields, ctgov_core)
         except Exception:
             pass
+
+    report = extraction_report(fields)
 
     search_condition = (flat.get("conditions") or [""])[0] or body.condition or ""
     phase_list = flat.get("phase") or []
@@ -296,6 +297,7 @@ def _merge_with_ctgov(flat: dict, fields: dict, ctgov_core: dict) -> dict:
     """
     For each field, prefer ClinicalTrials.gov data over extracted data
     when extraction confidence is below threshold or value is missing.
+    Updates both `flat` and `fields` with full data-provenance references.
     """
     mapping = {
         "title": "title",
@@ -311,13 +313,30 @@ def _merge_with_ctgov(flat: dict, fields: dict, ctgov_core: dict) -> dict:
         "conditions": "conditions",
         "interventions": "interventions",
     }
+    
+    nct_id = ctgov_core.get("nctId", "UnknownNCT")
+    proof_link = f"https://clinicaltrials.gov/study/{nct_id}"
+    
     for field_key, ctgov_key in mapping.items():
         extracted_conf = 0.0
         if isinstance(fields.get(field_key), dict):
             extracted_conf = fields[field_key].get("confidence", 0)
+            
         ctgov_val = ctgov_core.get(ctgov_key)
+        
+        # Override condition
         if ctgov_val and (extracted_conf < CONFIDENCE_THRESHOLD or not flat.get(field_key)):
             flat[field_key] = ctgov_val
+            # Explicitly track provenance that CTGov overrode poor/missing internal extraction
+            fields[field_key] = {
+                "value": ctgov_val,
+                "confidence": 1.0,
+                "source": "ClinicalTrials.gov Official Record",
+                "dataUsed": "ClinicalTrials.gov NCT Record Validation Loop",
+                "methodology": f"Overrode PDF extraction due to low confidence ({round(extracted_conf*100)}%) / missing value.",
+                "proofLink": proof_link
+            }
+            
     return flat
 
 
