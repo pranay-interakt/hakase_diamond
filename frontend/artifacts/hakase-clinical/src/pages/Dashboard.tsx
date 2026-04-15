@@ -112,16 +112,16 @@ export default function Dashboard() {
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col items-center gap-2 w-full">
             <img
               src="/hakase-logo.png"
               alt="Hakase AI"
-              className="h-5 w-auto object-contain"
+              className="h-7 w-auto object-contain mx-auto"
               style={{ background: "transparent" }}
             />
-            <p className="text-[10px] font-medium" style={{ color: "#64748b" }}>Clinical Trial Hub</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#475569", letterSpacing: "0.12em" }}>Clinical Trial Hub</p>
           </div>
-          <button onClick={() => setMobileOpen(false)} className="lg:hidden w-6 h-6 flex items-center justify-center rounded" style={{ color: "#64748b" }}>
+          <button onClick={() => setMobileOpen(false)} className="lg:hidden absolute right-4 top-5 w-6 h-6 flex items-center justify-center rounded" style={{ color: "#64748b" }}>
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -233,7 +233,6 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <img src="/hakase-logo.png" alt="Hakase" className="h-5 w-auto object-contain hidden sm:block" />
             <Badge variant="outline" className="text-[11px] hidden sm:flex items-center gap-1.5 px-2.5 py-1">
               <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               All sources live
@@ -265,9 +264,9 @@ function Overview({ onNavigate }: { onNavigate: (m: Module) => void }) {
         </div>
         <div className="relative px-8 py-10">
           <div className="flex items-center gap-3 mb-4">
-            <img src="/hakase-logo.png" alt="Hakase" className="h-6 w-auto object-contain" />
-            <div className="flex items-center gap-3">
-              <span className="h-4 w-px bg-blue-400/30" />
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-blue-300">Hakase AI</span>
+              <span className="h-3.5 w-px bg-blue-400/40" />
               <span className="text-[11px] font-medium text-blue-400/80">Clinical Trial Intelligence Platform</span>
             </div>
           </div>
