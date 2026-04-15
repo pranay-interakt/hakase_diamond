@@ -1,23 +1,26 @@
 """
-protocol_extractor.py — Structured, section-aware protocol extraction.
+protocol_extractor.py — Unified protocol extraction using PageIndex ReasoningRetriever.
 
 Strategy:
-1. Uses PyMuPDF block layout to detect section headings and their content
-2. Extracts each field from the correct section rather than scanning the whole text
-3. Cross-validates against ClinicalTrials.gov if an NCT ID is found in the document
-4. Every extracted value includes a confidence score and source excerpt
+1. Accept raw PDF bytes
+2. Build PageIndex (structural tree from TOC + heading layout + table extraction)
+3. Assemble a high-yield context window from the most informative pages
+4. Run regex/heuristic field extraction (no LLM required) over the context
+5. Second-pass regex verification for numeric fields
+6. Cross-validate against ClinicalTrials.gov if NCT ID found
+
+No LLM dependency for core extraction — pure data-driven, fully deterministic.
 """
 from __future__ import annotations
 import re
 import statistics
 from typing import Optional
+from .reasoning_retriever import ReasoningRetriever
 
 
 # ─────────────────────────────────────────────────────────
-# Section-Aware PDF Parser
+# Section heading patterns (for backward-compat plain-text parse)
 # ─────────────────────────────────────────────────────────
-
-# Section heading patterns — ordered by priority
 SECTION_HEADING_PATTERNS: list[tuple[str, list[str]]] = [
     ("title",            ["study title", "protocol title", "title of study", "title of protocol", "full title"]),
     ("objectives",       ["objectives", "study objectives", "purpose", "aim of study"]),
@@ -39,95 +42,77 @@ STOP_WORDS = {
     "be", "has", "have", "had", "not", "but", "which", "who", "they", "all"
 }
 
+# ─────────────────────────────────────────────────────────
+# Primary Entry Point: PDF bytes → structured fields
+# ─────────────────────────────────────────────────────────
+
+def extract_from_pdf_bytes(content: bytes) -> tuple[dict, dict]:
+    """
+    Main extraction pipeline using ReasoningRetriever (PageIndex).
+    Returns (fields_with_confidence, flat_dict).
+    """
+    retriever = ReasoningRetriever(pdf_bytes=content)
+    context = retriever.get_high_yield_overview_context()
+
+    # Build a sections dict from the PageIndex for field extractors
+    sections: dict[str, str] = {}
+    _populate_sections_from_retriever(retriever, sections, context)
+
+    fields = extract_protocol_fields(sections)
+    return fields, flatten_extracted(fields)
+
+
+def _populate_sections_from_retriever(retriever: ReasoningRetriever, sections: dict, full_context: str):
+    """
+    Pull targeted section text from the PageIndex into the sections dict,
+    then provide the full context as __full__ for fallback regex.
+    """
+    pi = retriever.page_index
+    section_map = {
+        "title": "synopsis",
+        "objectives": "objectives",
+        "primary_endpoint": "endpoints",
+        "design": "design",
+        "eligibility": "eligibility",
+        "sample_size": "statistics",
+        "interventions": "dosing",
+        "conditions": "synopsis",
+    }
+    for field_key, pi_section in section_map.items():
+        pages = pi.get_pages_for_section(pi_section, max_pages=2)
+        if pages:
+            sections[field_key] = "\n".join(p["text"] for p in pages)[:4000]
+
+    # Full context for regex fallback
+    sections["__full__"] = full_context
+
+
+# ─────────────────────────────────────────────────────────
+# Legacy: Section-Aware PDF Parser (kept for plain-text path)
+# ─────────────────────────────────────────────────────────
 
 def extract_sections_from_pdf_bytes(content: bytes) -> dict[str, str]:
-    """
-    Uses PyMuPDF block layout to extract text organized by section headings.
-    Returns a dict of {section_key: section_text}.
-    """
+    """Legacy path — calls the unified pipeline and returns sections."""
     try:
-        import fitz
-    except ImportError:
+        retriever = ReasoningRetriever(pdf_bytes=content)
+        context = retriever.get_high_yield_overview_context()
+        sections: dict[str, str] = {}
+        _populate_sections_from_retriever(retriever, sections, context)
+        return sections
+    except Exception:
         return {}
 
-    doc = fitz.open(stream=content, filetype="pdf")
-    sections: dict[str, str] = {}
-    raw_lines: list[tuple[float, str]] = []  # (font_size, text)
 
-    for page in doc:
-        blocks = page.get_text("dict")["blocks"]
-        for block in blocks:
-            if block.get("type") != 0:  # text block
-                continue
-            for line in block.get("lines", []):
-                spans = line.get("spans", [])
-                if not spans:
-                    continue
-                text = " ".join(s.get("text", "").strip() for s in spans).strip()
-                if not text:
-                    continue
-                size = max(s.get("size", 10) for s in spans)
-                raw_lines.append((size, text))
-
-    doc.close()
-
-    # Detect heading font size threshold: headings are typically larger than body
-    all_sizes = [sz for sz, _ in raw_lines if sz > 0]
-    if not all_sizes:
-        return {}
-
-    body_size = statistics.median(all_sizes)
-    heading_threshold = body_size * 1.05  # anything ≥5% larger = potential heading
-
-    # Build section map
-    current_section: Optional[str] = None
-    current_text: list[str] = []
-    full_text_lines: list[str] = []
-
-    def _identify_section(text: str) -> Optional[str]:
-        t = text.lower().strip().rstrip(":")
-        for key, patterns in SECTION_HEADING_PATTERNS:
-            for pat in patterns:
-                if t == pat or t.startswith(pat) or pat in t:
-                    return key
-        return None
-
-    for size, text in raw_lines:
-        full_text_lines.append(text)
-        is_heading = size >= heading_threshold and len(text) < 120
-
-        if is_heading:
-            sec_key = _identify_section(text)
-            if sec_key:
-                if current_section and current_text:
-                    # Join with newlines to preserve list structure
-                    sections[current_section] = "\n".join(current_text).strip()
-                current_section = sec_key
-                current_text = []
-                continue
-
-        if current_section:
-            current_text.append(text)
-
-    if current_section and current_text:
-        sections[current_section] = "\n".join(current_text).strip()
-
-    # Store full text as well for fallback
-    sections["__full__"] = "\n".join(full_text_lines)
-    return sections
-
+# ─────────────────────────────────────────────────────────
+# Protocol Field Extraction (pure regex/heuristic, no LLM)
+# ─────────────────────────────────────────────────────────
 
 def extract_protocol_fields(sections: dict[str, str]) -> dict:
-    """
-    Extracts structured fields from the section map.
-    Each field includes value + confidence + source_excerpt.
-    """
     full = sections.get("__full__", "")
     full_lower = full.lower()
 
     fields = {}
 
-    # ── NCT ID (early detection for cross-validation) ──
     nct_match = re.search(r'\bNCT\d{8}\b', full, re.IGNORECASE)
     fields["nctId"] = {
         "value": nct_match.group(0).upper() if nct_match else None,
@@ -135,55 +120,42 @@ def extract_protocol_fields(sections: dict[str, str]) -> dict:
         "source": nct_match.group(0) if nct_match else None,
     }
 
-    # ── Title ──
     title_val, title_conf, title_src = _extract_title(sections, full)
     fields["title"] = {"value": title_val, "confidence": title_conf, "source": title_src}
 
-    # ── Phase ──
     phase_val, phase_conf, phase_src = _extract_phase(sections, full_lower)
     fields["phase"] = {"value": phase_val, "confidence": phase_conf, "source": phase_src}
 
-    # ── Primary Endpoints ──
     pe_val, pe_conf, pe_src = _extract_endpoints(sections, "primary")
     fields["primaryOutcomes"] = {"value": pe_val, "confidence": pe_conf, "source": pe_src}
 
-    # ── Secondary Endpoints ──
     se_val, se_conf, se_src = _extract_endpoints(sections, "secondary")
     fields["secondaryOutcomes"] = {"value": se_val, "confidence": se_conf, "source": se_src}
 
-    # ── Enrollment / Sample Size ──
     n_val, n_conf, n_src = _extract_enrollment(sections, full_lower)
     fields["enrollmentCount"] = {"value": n_val, "confidence": n_conf, "source": n_src}
 
-    # ── Eligibility ──
     elig_val, elig_conf, elig_src = _extract_eligibility(sections, full)
     fields["eligibilityCriteria"] = {"value": elig_val, "confidence": elig_conf, "source": elig_src}
 
-    # ── Sponsor ──
     sp_val, sp_conf, sp_src = _extract_sponsor(sections, full)
     fields["sponsorName"] = {"value": sp_val, "confidence": sp_conf, "source": sp_src}
 
-    # ── Masking ──
     mask_val, mask_conf, mask_src = _extract_masking(sections, full_lower)
     fields["masking"] = {"value": mask_val, "confidence": mask_conf, "source": mask_src}
 
-    # ── Allocation ──
     alloc_val, alloc_conf, alloc_src = _extract_allocation(sections, full_lower)
     fields["allocation"] = {"value": alloc_val, "confidence": alloc_conf, "source": alloc_src}
 
-    # ── Study Type ──
     st_val = "OBSERVATIONAL" if re.search(r'\bobservational\b|\bcohort\b|\bregist', full_lower) else "INTERVENTIONAL"
     fields["studyType"] = {"value": st_val, "confidence": 0.8, "source": None}
 
-    # ── Conditions / Indication ──
     cond_val, cond_conf, cond_src = _extract_conditions(sections, full)
     fields["conditions"] = {"value": cond_val, "confidence": cond_conf, "source": cond_src}
 
-    # ── Interventions ──
     intr_val, intr_conf, intr_src = _extract_interventions(sections, full)
     fields["interventions"] = {"value": intr_val, "confidence": intr_conf, "source": intr_src}
 
-    # Overall extraction confidence
     scored_fields = [v["confidence"] for v in fields.values() if isinstance(v, dict) and v.get("value")]
     fields["__meta__"] = {
         "extractionConfidence": round(statistics.mean(scored_fields), 2) if scored_fields else 0.0,
@@ -195,18 +167,17 @@ def extract_protocol_fields(sections: dict[str, str]) -> dict:
 
 
 # ─────────────────────────────────────────────────────────
-# Field Extractors
+# Field Extractors (deterministic, regex-based)
 # ─────────────────────────────────────────────────────────
 
 def _extract_title(sections: dict, full: str) -> tuple[str, float, str]:
-    # Priority 1: dedicated title section
     if sections.get("title"):
         raw = sections["title"][:250].strip()
-        # Clean boilerplate words
         if len(raw) > 20 and not raw.lower().startswith("the following"):
-            return raw, 0.9, raw
+            first_line = raw.split("\n")[0].strip()
+            if len(first_line) > 20:
+                return first_line[:200], 0.9, first_line
 
-    # Priority 2: "Protocol Title:" or "Study Title:" label in full text
     m = re.search(
         r'(?:protocol\s+title|study\s+title|full\s+title)\s*[:\-]\s*([^\n]{20,250})',
         full, re.IGNORECASE
@@ -214,8 +185,6 @@ def _extract_title(sections: dict, full: str) -> tuple[str, float, str]:
     if m:
         return m.group(1).strip(), 0.85, m.group(0)[:120]
 
-    # Priority 3: largest text in first 3 pages (heuristic for cover page)
-    # If we have nothing, take first non-trivial line
     for line in full.split("\n")[:30]:
         line = line.strip()
         if len(line) > 30 and not re.match(r'^(page|version|\d+|confidential)', line, re.IGNORECASE):
@@ -225,7 +194,6 @@ def _extract_title(sections: dict, full: str) -> tuple[str, float, str]:
 
 
 def _extract_phase(sections: dict, full_lower: str) -> tuple[list[str], float, str]:
-    # Priority 1: dedicated phase section content
     phase_text = sections.get("phase", "") + " " + sections.get("design", "")
 
     patterns = {
@@ -236,21 +204,18 @@ def _extract_phase(sections: dict, full_lower: str) -> tuple[list[str], float, s
         "PHASE4": r"\bphase\s+4\b|\bphase\s+iv\b(?!\w)",
     }
 
-    # Search section-specific text first, then full doc
     found: dict[str, int] = {}
     for ph, pat in patterns.items():
-        # Count occurrences in phase/design section vs full doc
         n_section = len(re.findall(pat, (phase_text or "").lower()))
         n_full = len(re.findall(pat, full_lower))
         if n_section >= 1:
-            found[ph] = n_section * 3  # weight: section match counts more
+            found[ph] = n_section * 3
         elif n_full >= 2:
-            found[ph] = n_full  # need ≥2 occurrences in full doc to trust it
+            found[ph] = n_full
 
     if not found:
         return [], 0.0, ""
 
-    # Only keep phases with significant signal — avoid ambiguous mentions
     top_count = max(found.values())
     phases = [ph for ph, cnt in found.items() if cnt >= top_count * 0.5]
     confidence = min(0.95, 0.6 + len(phase_text) / 5000) if phase_text else 0.5
@@ -262,12 +227,10 @@ def _extract_endpoints(sections: dict, kind: str) -> tuple[list[str], float, str
     section_text = sections.get(key, "")
 
     if section_text:
-        # Extract bullet-point-like items or sentence fragments
         items = _extract_list_items(section_text, max_items=8 if kind == "secondary" else 3)
         if items:
             return items, 0.85, section_text[:200]
 
-    # Fallback: search full text
     full = sections.get("__full__", "")
     pattern = rf"{kind}\s+(?:endpoint|outcome|objective)[s]?\s*[:\-]?\s*([^\n]{{20,300}})"
     matches = re.findall(pattern, full, re.IGNORECASE)
@@ -279,39 +242,27 @@ def _extract_endpoints(sections: dict, kind: str) -> tuple[list[str], float, str
 
 
 def _extract_list_items(text: str, max_items: int = 5) -> list[str]:
-    """
-    Extract structured list items (bullet points, numbered lists, semicolons).
-    Handles both newline-delimited and space-delimited numbered lists.
-    """
-    # Try numbered list with newlines: "1. ...\n2. ..."
-    numbered = re.findall(r'(?:^|\n)\s*\d+[.):]\s+([^\n]{10,250})', text)
+    numbered = re.findall(r'(?:^|\n)\s*\d+[.):]?\s+([^\n]{10,250})', text)
     if numbered and len(numbered) >= 2:
         return [n.strip() for n in numbered[:max_items]]
 
-    # Try inline numbered list: "1. ... 2. ... 3. ..."
-    # Captures items between number markers
-    inline_numbered = re.split(r'\s+\d+[.):]\s+', text)
-    if len(inline_numbered) >= 3:  # ≥3 parts means ≥2 items
-        # First element before "1." may be empty or header
+    inline_numbered = re.split(r'\s+\d+[.):]?\s+', text)
+    if len(inline_numbered) >= 3:
         items = [s.strip() for s in inline_numbered[1:] if len(s.strip()) > 10]
         if items:
             return items[:max_items]
 
-    # Try bullet markers
     bulleted = re.findall(r'(?:^|\n)\s*[•\-\*–]\s+([^\n]{10,250})', text)
     if bulleted:
         return [b.strip() for b in bulleted[:max_items]]
 
-    # Try semicolon separation
     semicolons = [s.strip() for s in text.split(";") if len(s.strip()) > 15]
     if len(semicolons) >= 2:
         return semicolons[:max_items]
 
-    # Single numbered item found — better than nothing
     if numbered:
         return [n.strip() for n in numbered[:max_items]]
 
-    # Fallback: full text as single item, truncated
     clean = re.sub(r'\s+', ' ', text).strip()
     if len(clean) > 20:
         return [clean[:300]]
@@ -320,7 +271,6 @@ def _extract_list_items(text: str, max_items: int = 5) -> list[str]:
 
 
 def _extract_enrollment(sections: dict, full_lower: str) -> tuple[Optional[int], float, str]:
-    # Priority 1: dedicated sample size section
     ss_text = sections.get("sample_size", "")
     search_text = ss_text if ss_text else full_lower
 
@@ -338,7 +288,7 @@ def _extract_enrollment(sections: dict, full_lower: str) -> tuple[Optional[int],
     for pat in patterns:
         for m in re.finditer(pat, search_text, re.IGNORECASE):
             n = int(m.group(1))
-            if 10 <= n <= 100000:  # sanity range
+            if 10 <= n <= 100000:
                 conf = 0.9 if ss_text else 0.7
                 if best_n is None or conf > best_conf:
                     best_n = n
@@ -354,7 +304,6 @@ def _extract_eligibility(sections: dict, full: str) -> tuple[str, float, str]:
         clean = re.sub(r'\s+', ' ', elig_text).strip()
         return clean[:2000], 0.9, elig_text[:100]
 
-    # Fallback regex on full text
     m = re.search(
         r'(?:inclusion|eligibility)\s+criteria\s*[:\-]?\s*((?:.|\n){80,3000}?)(?=exclusion\s+criteria|study\s+design|primary\s+endpoint|$)',
         full, re.IGNORECASE
@@ -369,12 +318,10 @@ def _extract_eligibility(sections: dict, full: str) -> tuple[str, float, str]:
 def _extract_sponsor(sections: dict, full: str) -> tuple[str, float, str]:
     sp_text = sections.get("sponsor", "")
     if sp_text:
-        # Extract the first meaningful line from the sponsor section
         first_line = sp_text.split("\n")[0].strip()
         if 5 < len(first_line) < 150:
             return first_line, 0.9, first_line
 
-    # Multi-word aware sponsor patterns
     patterns = [
         r'(?:^|\n)(?:sponsor|applicant|company)\s*[:\-]\s*([A-Za-z][^\n,;]{5,100})',
         r'(?:sponsor|applicant|company)\s+(?:is|name|:)\s*([A-Za-z][^\n,;]{5,100})',
@@ -384,7 +331,6 @@ def _extract_sponsor(sections: dict, full: str) -> tuple[str, float, str]:
         m = re.search(pat, full, re.IGNORECASE)
         if m:
             val = m.group(1).strip()
-            # Filter out obvious false positives (very short or stop words)
             if len(val) > 5 and val.lower() not in STOP_WORDS:
                 return val[:100], 0.75, m.group(0)[:80]
 
@@ -428,7 +374,6 @@ def _extract_conditions(sections: dict, full: str) -> tuple[list[str], float, st
         if items:
             return items, 0.85, cond_text[:100]
 
-    # Multi-pattern condition extraction
     patterns = [
         r'(?:indication|disease|condition|disorder|therapeutic\s+area)\s*[:\-]\s*([A-Za-z][^\n,;]{5,100})',
     ]
@@ -436,7 +381,6 @@ def _extract_conditions(sections: dict, full: str) -> tuple[list[str], float, st
     for pat in patterns:
         for m in re.finditer(pat, full, re.IGNORECASE):
             val = m.group(1).strip()
-            # Filter boilerplate
             if len(val) > 5 and not val.lower().startswith(("not", "any", "see", "refer", "the")):
                 found.append(val[:100])
     if found:
@@ -474,11 +418,10 @@ def _extract_interventions(sections: dict, full: str) -> tuple[list[dict], float
 
 
 # ─────────────────────────────────────────────────────────
-# Flatten extracted fields to a simple dict (for compatibility)
+# Flatten / report helpers
 # ─────────────────────────────────────────────────────────
 
 def flatten_extracted(fields: dict) -> dict:
-    """Converts nested {value, confidence, source} to flat values for downstream use."""
     result = {}
     for key, v in fields.items():
         if key.startswith("__"):
@@ -491,7 +434,6 @@ def flatten_extracted(fields: dict) -> dict:
 
 
 def extraction_report(fields: dict) -> list[dict]:
-    """Returns a report of which fields were extracted and with what confidence."""
     report = []
     for key, v in fields.items():
         if key.startswith("__"):

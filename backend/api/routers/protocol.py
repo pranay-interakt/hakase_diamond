@@ -15,6 +15,7 @@ from typing import Optional
 from ..services.compliance_rules import check_protocol_compliance, calculate_compliance_score
 from ..services import ctgov, analysis
 from ..services.protocol_extractor import (
+    extract_from_pdf_bytes,
     extract_sections_from_pdf_bytes,
     extract_protocol_fields,
     flatten_extracted,
@@ -40,14 +41,16 @@ async def analyze_protocol_upload(file: UploadFile = File(...)):
     if len(content) > 50 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 50 MB)")
 
-    # ── Step 1: Section-aware extraction ──
-    sections = extract_sections_from_pdf_bytes(content)
-    if not sections:
+    # ── Step 1: PageIndex extraction (structural + regex, no LLM) ──
+    try:
+        fields, flat = extract_from_pdf_bytes(content)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not parse PDF: {exc}")
+
+    if not fields:
         raise HTTPException(status_code=400, detail="Could not parse PDF — no readable text blocks found")
 
-    fields = extract_protocol_fields(sections)
     report = extraction_report(fields)
-    flat = flatten_extracted(fields)
 
     # ── Step 2: Cross-validate with ClinicalTrials.gov if NCT ID found ──
     nct_field = fields.get("nctId", {})
