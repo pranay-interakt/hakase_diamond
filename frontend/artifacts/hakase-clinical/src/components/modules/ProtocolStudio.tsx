@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import {
   Upload, FileText, Loader2, AlertCircle, CheckCircle2, ChevronDown, ChevronUp,
   RefreshCw, Wand2, Plus, Trash2, MapPin, Users, BarChart3, FlaskConical,
-  ExternalLink, Building2, BookOpen, Check, X, Database, Activity
+  ExternalLink, Building2, BookOpen, Check, X, Database, Activity, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +59,8 @@ export default function ProtocolStudio() {
   const [expandedIssue, setExpandedIssue] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulatedData, setSimulatedData] = useState<any>(null);
+  const [simulationLoading, setSimulationLoading] = useState(false);
+  const [simulationResult, setSimulationResult] = useState<any>(null);
   const [suggestedAmendments, setSuggestedAmendments] = useState<any[]>([]);
 
   // amendments
@@ -199,6 +201,42 @@ export default function ProtocolStudio() {
     }
   };
 
+  const runSimulation = async () => {
+    if (!simulatedData || !result?.parsed) return;
+    setSimulationLoading(true);
+    setError("");
+    try {
+      const edited = {
+        ...result.parsed,
+        ...simulatedData,
+        enrollmentCount: simulatedData.enrollmentCount
+          ? Number(simulatedData.enrollmentCount)
+          : result.parsed.enrollmentCount,
+        phase: simulatedData.phase
+          ? [simulatedData.phase]
+          : result.parsed.phase,
+      };
+
+      const delta = Object.keys(simulatedData)
+        .filter(k => String(simulatedData[k]) !== String((result.parsed as any)[k]))
+        .map(k => ({ field: k, value: simulatedData[k], name: `Simulated: ${k}` }));
+
+      const [newCompliance, newImpact] = await Promise.all([
+        checkCompliance(edited),
+        delta.length > 0
+          ? simulateProtocolImpact({ originalProtocol: result.parsed, amendments: delta })
+          : Promise.resolve(null),
+      ]);
+
+      setSimulationResult({ compliance: newCompliance, impact: newImpact });
+      setResult((prev: any) => ({ ...prev, compliance: newCompliance }));
+    } catch (e: any) {
+      setError(e.message || "Simulation failed");
+    } finally {
+      setSimulationLoading(false);
+    }
+  };
+
   const addAmendment = () => {
     if (!newAmendment.name.trim()) return;
     const a: Amendment = {
@@ -326,6 +364,9 @@ export default function ProtocolStudio() {
           simulatedData={simulatedData}
           setSimulatedData={setSimulatedData}
           suggestedAmendments={suggestedAmendments}
+          runSimulation={runSimulation}
+          simulationLoading={simulationLoading}
+          simulationResult={simulationResult}
         />
       )}
       {tab === "amendments" && (
@@ -375,7 +416,10 @@ function AnalysisTab({
   setIsSimulating,
   simulatedData,
   setSimulatedData,
-  suggestedAmendments
+  suggestedAmendments,
+  runSimulation,
+  simulationLoading,
+  simulationResult
 }: any) {
   const [showAmends, setShowAmends] = useState(true);
 
@@ -440,7 +484,70 @@ function AnalysisTab({
           </div>
         </div>
 
-        {/* Success Factors */}
+        {/* Run Simulation CTA */}
+        {isSimulating && (
+          <div className="space-y-3">
+            <Button
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold shadow-lg shadow-amber-200/50 transition-all"
+              onClick={runSimulation}
+              disabled={simulationLoading}
+            >
+              {simulationLoading ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" />Running Simulation…</>
+              ) : (
+                <><BarChart3 className="h-4 w-4 mr-2" />Run Simulation with New Parameters →</>
+              )}
+            </Button>
+
+            {simulationResult?.impact && (
+              <div className={`rounded-xl border p-4 ${
+                (simulationResult.impact?.delta?.scoreChange ?? 0) >= 0
+                  ? 'bg-emerald-50 border-emerald-200'
+                  : 'bg-red-50 border-red-200'
+              }`}>
+                <p className="text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                  {(simulationResult.impact?.delta?.scoreChange ?? 0) >= 0
+                    ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    : <AlertCircle className="h-3.5 w-3.5 text-red-600" />}
+                  Simulation Delta
+                </p>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-[10px] text-slate-500">Score Change</p>
+                    <p className={`text-2xl font-bold ${
+                      (simulationResult.impact?.delta?.scoreChange ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-600'
+                    }`}>
+                      {(simulationResult.impact?.delta?.scoreChange ?? 0) > 0 ? '+' : ''}
+                      {simulationResult.impact?.delta?.scoreChange ?? 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500">Issues Resolved</p>
+                    <p className="text-2xl font-bold text-emerald-600">
+                      {simulationResult.impact?.delta?.resolvedIssues?.length ?? 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500">New Issues</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {simulationResult.impact?.delta?.newIssues?.length ?? 0}
+                    </p>
+                  </div>
+                </div>
+                {simulationResult.impact?.enrollmentImpact?.factors?.length > 0 && (
+                  <div className="mt-3 border-t border-black/10 pt-3 space-y-1">
+                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Enrollment Impact</p>
+                    {simulationResult.impact.enrollmentImpact.factors.map((f: any, i: number) => (
+                      <p key={i} className="text-xs text-slate-600">
+                        {f.impact > 0 ? '▲' : '▼'} {f.description}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {result.successProbability?.factors?.length > 0 && (
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
