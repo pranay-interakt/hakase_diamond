@@ -9,3 +9,5 @@ frontend/dist/
 __pycache__/
 *.pyc
 .env
+venv/
+backend/venv/
