@@ -127,24 +127,41 @@ async def compute_prr_signals(drug_name: str) -> dict:
         return result
 
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            # Step 1: Get drug-specific reaction counts
+        async with httpx.AsyncClient(timeout=25) as client:
+            # Step 1: Get drug-specific reaction counts — try multiple search strategies
             drug_url = "https://api.fda.gov/drug/event.json"
-            drug_params = {
-                "search": f'patient.drug.medicinalproduct:"{drug_name}"',
-                "count": "patient.reaction.reactionmeddrapt.exact",
-                "limit": 20,
-            }
-            r1 = await client.get(drug_url, params=drug_params)
-            if r1.status_code != 200:
-                return result
+            search_strategies = [
+                f'patient.drug.medicinalproduct:"{drug_name}"',
+                f'patient.drug.openfda.generic_name:"{drug_name}"',
+                f'patient.drug.openfda.brand_name:"{drug_name}"',
+            ]
+            drug_reactions = []
+            total_drug_reports = 0
+            for strategy in search_strategies:
+                drug_params = {
+                    "search": strategy,
+                    "count": "patient.reaction.reactionmeddrapt.exact",
+                    "limit": 20,
+                }
+                r1 = await client.get(drug_url, params=drug_params)
+                if r1.status_code == 200:
+                    _data = r1.json()
+                    _reactions = _data.get("results", [])
+                    # meta.results.total is 0 for count queries on FDA API — use reactions to check
+                    if _reactions:
+                        drug_reactions = _reactions
+                        # Get true report total via a separate non-count query
+                        r_total = await client.get(drug_url, params={"search": strategy, "limit": 1})
+                        if r_total.status_code == 200:
+                            total_drug_reports = r_total.json().get("meta", {}).get("results", {}).get("total", 0)
+                        if total_drug_reports == 0:
+                            # Fallback: sum reaction counts as proxy
+                            total_drug_reports = sum(r.get("count", 0) for r in _reactions)
+                        break  # found data with this strategy
 
-            drug_data = r1.json()
-            drug_reactions = drug_data.get("results", [])
-            total_drug_reports = drug_data.get("meta", {}).get("results", {}).get("total", 0)
             result["totalDrugReports"] = total_drug_reports
 
-            if not drug_reactions or total_drug_reports == 0:
+            if not drug_reactions:
                 return result
 
             # Step 2: Get background reaction counts (all drugs)

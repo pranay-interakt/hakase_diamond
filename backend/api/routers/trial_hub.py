@@ -453,9 +453,10 @@ async def stage1_discovery(body: Stage1Input):
         "safetyBaseline": {
             "safetyScore": safety_data.get("safetyScore", 0),
             "riskLevel": safety_data.get("riskLevel", "UNKNOWN"),
-            "totalFaersReports": safety_data.get("totalDrugReports", 0),
+            "totalDrugReports": safety_data.get("totalDrugReports", 0),
             "nSignals": safety_data.get("nSignals", 0),
             "nSeriousReactions": safety_data.get("nSeriousReactions", 0),
+            "signals": safety_data.get("signals", []),
             "topSignals": [s["reaction"] for s in (safety_data.get("signals") or [])[:5]],
             "method": safety_data.get("method"),
             "reasoning": safety_data.get("reasoning"),

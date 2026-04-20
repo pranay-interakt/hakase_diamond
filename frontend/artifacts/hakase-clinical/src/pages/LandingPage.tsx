@@ -1,13 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import {
-  motion,
-  useScroll,
-  useTransform,
-  useInView,
-  useSpring,
-  useMotionValue,
-  useMotionValueEvent,
+  motion, AnimatePresence,
+  useScroll, useTransform, useInView,
+  useSpring, useMotionValue,
 } from "framer-motion";
 
 // ─── Particle field ───────────────────────────────────────────────────────────
@@ -21,26 +17,24 @@ function ParticleCanvas() {
     const resize = () => { c.width = window.innerWidth; c.height = window.innerHeight; };
     resize();
     window.addEventListener("resize", resize);
-    const pts = Array.from({ length: 55 }, () => ({
+    const pts = Array.from({ length: 50 }, () => ({
       x: Math.random() * c.width, y: Math.random() * c.height,
-      vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35,
-      r: Math.random() * 1.4 + 0.4,
+      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 1.3 + 0.4,
     }));
     const draw = () => {
       ctx.clearRect(0, 0, c.width, c.height);
-      for (let i = 0; i < pts.length; i++) {
-        const a = pts[i];
+      pts.forEach((a, i) => {
         a.x += a.vx; a.y += a.vy;
         if (a.x < 0 || a.x > c.width) a.vx *= -1;
         if (a.y < 0 || a.y > c.height) a.vy *= -1;
         ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(6,182,212,0.45)"; ctx.fill();
-        for (let j = i + 1; j < pts.length; j++) {
-          const b = pts[j]; const dx = a.x - b.x, dy = a.y - b.y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 120) { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.strokeStyle = `rgba(6,182,212,${(1 - d / 120) * 0.1})`; ctx.lineWidth = 0.5; ctx.stroke(); }
-        }
-      }
+        ctx.fillStyle = "rgba(6,182,212,0.4)"; ctx.fill();
+        pts.slice(i + 1).forEach(b => {
+          const dx = a.x - b.x, dy = a.y - b.y, d = Math.hypot(dx, dy);
+          if (d < 110) { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.strokeStyle = `rgba(6,182,212,${(1 - d / 110) * 0.09})`; ctx.lineWidth = 0.5; ctx.stroke(); }
+        });
+      });
       raf = requestAnimationFrame(draw);
     };
     draw();
@@ -49,223 +43,22 @@ function ParticleCanvas() {
   return <canvas ref={ref} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />;
 }
 
-// ─── DNA Helix Canvas ─────────────────────────────────────────────────────────
-
-const DNA_STAGES = [
-  { label: "Discovery", sub: "CTGov landscape · 300+ trials", color: "#06b6d4" },
-  { label: "Site Selection", sub: "Global ranking · Shannon diversity", color: "#6366f1" },
-  { label: "Regulatory", sub: "IND/CTA roadmap · precedent data", color: "#10b981" },
-  { label: "Enrollment Sim", sub: "Monte Carlo P10/P50/P90", color: "#f59e0b" },
-  { label: "Execution", sub: "Protocol deviation modeling", color: "#ec4899" },
-  { label: "Outcomes", sub: "ML success probability · GB+RF", color: "#8b5cf6" },
-];
-
-function DNASection() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
-  const [progress, setProgress] = useState(0);
-
-  useMotionValueEvent(scrollYProgress, "change", v => setProgress(v));
-
-  useEffect(() => {
-    const c = canvasRef.current; if (!c) return;
-    const ctx = c.getContext("2d")!;
-    let raf: number;
-    let internalProgress = progress;
-
-    const resize = () => { c.width = c.offsetWidth; c.height = c.offsetHeight; };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(c);
-
-    const draw = () => {
-      internalProgress = progress;
-      const W = c.width, H = c.height;
-      ctx.clearRect(0, 0, W, H);
-
-      const cx = W / 2;
-      const N = 50;
-      const helixH = H * 0.78;
-      const startY = H * 0.11;
-      const scroll = Math.max(0, Math.min(1, (internalProgress - 0.1) / 0.75));
-      const rotation = scroll * Math.PI * 5;
-      const amplitude = 55 + scroll * 35;
-
-      const COLORS_A = ["#06b6d4", "#0891b2", "#22d3ee", "#06b6d4", "#0ea5e9"];
-      const COLORS_B = ["#6366f1", "#4f46e5", "#818cf8", "#6366f1", "#8b5cf6"];
-      const RUNG_COLOR = (z: number) => `rgba(120,150,255,${0.15 + z * 0.18})`;
-
-      const strand1x: number[] = [], strand1y: number[] = [];
-      const strand2x: number[] = [], strand2y: number[] = [];
-
-      for (let i = 0; i <= N; i++) {
-        const t = i / N;
-        const y = startY + t * helixH;
-        const angle = t * Math.PI * 7 + rotation;
-        const z1 = Math.sin(angle);
-        const x1 = cx + Math.cos(angle) * amplitude;
-        const x2 = cx + Math.cos(angle + Math.PI) * amplitude;
-        strand1x.push(x1); strand1y.push(y);
-        strand2x.push(x2); strand2y.push(y);
-      }
-
-      // Draw connecting rungs
-      for (let i = 0; i <= N; i += 3) {
-        const angle = (i / N) * Math.PI * 7 + rotation;
-        const z = Math.sin(angle);
-        if (z > -0.1) {
-          ctx.beginPath();
-          ctx.moveTo(strand1x[i], strand1y[i]);
-          ctx.lineTo(strand2x[i], strand2y[i]);
-          ctx.strokeStyle = RUNG_COLOR(z);
-          ctx.lineWidth = 1.5 + z * 1;
-          ctx.stroke();
-        }
-      }
-
-      // Draw strand 1
-      ctx.beginPath();
-      for (let i = 0; i <= N; i++) {
-        if (i === 0) ctx.moveTo(strand1x[i], strand1y[i]);
-        else ctx.lineTo(strand1x[i], strand1y[i]);
-      }
-      const grad1 = ctx.createLinearGradient(cx - amplitude, startY, cx + amplitude, startY + helixH);
-      grad1.addColorStop(0, "rgba(6,182,212,0.6)");
-      grad1.addColorStop(0.5, "rgba(6,182,212,0.9)");
-      grad1.addColorStop(1, "rgba(6,182,212,0.6)");
-      ctx.strokeStyle = grad1;
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = "#06b6d4";
-      ctx.shadowBlur = 8;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // Draw strand 2
-      ctx.beginPath();
-      for (let i = 0; i <= N; i++) {
-        if (i === 0) ctx.moveTo(strand2x[i], strand2y[i]);
-        else ctx.lineTo(strand2x[i], strand2y[i]);
-      }
-      const grad2 = ctx.createLinearGradient(cx - amplitude, startY, cx + amplitude, startY + helixH);
-      grad2.addColorStop(0, "rgba(99,102,241,0.6)");
-      grad2.addColorStop(0.5, "rgba(99,102,241,0.9)");
-      grad2.addColorStop(1, "rgba(99,102,241,0.6)");
-      ctx.strokeStyle = grad2;
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = "#6366f1";
-      ctx.shadowBlur = 8;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // Draw nodes on strand 1 and 2
-      for (let i = 0; i <= N; i += 2) {
-        const angle = (i / N) * Math.PI * 7 + rotation;
-        const z1 = Math.sin(angle); const z2 = Math.sin(angle + Math.PI);
-        const r1 = 3.5 + z1 * 1.5, r2 = 3.5 + z2 * 1.5;
-        if (r1 > 0) {
-          ctx.beginPath(); ctx.arc(strand1x[i], strand1y[i], Math.max(1, r1), 0, Math.PI * 2);
-          ctx.fillStyle = COLORS_A[i % COLORS_A.length]; ctx.shadowColor = COLORS_A[i % COLORS_A.length]; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0;
-        }
-        if (r2 > 0) {
-          ctx.beginPath(); ctx.arc(strand2x[i], strand2y[i], Math.max(1, r2), 0, Math.PI * 2);
-          ctx.fillStyle = COLORS_B[i % COLORS_B.length]; ctx.shadowColor = COLORS_B[i % COLORS_B.length]; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0;
-        }
-      }
-
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); };
-  }, [progress]);
-
-  const stageProgress = Math.max(0, (progress - 0.15) / 0.7);
-
-  return (
-    <div ref={sectionRef} style={{ height: "250vh", position: "relative" }}>
-      <div style={{ position: "sticky", top: 0, height: "100vh", display: "flex", alignItems: "center", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,#020817 0%,#050f24 100%)" }} />
-
-        <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 1280, margin: "0 auto", padding: "0 48px", display: "grid", gridTemplateColumns: "1fr 1.1fr", gap: 40, alignItems: "center" }}>
-
-          {/* Left: stage cards */}
-          <div>
-            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#06b6d4", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 14 }}>6-Stage Intelligence Engine</div>
-              <h2 style={{ fontSize: "clamp(28px, 3.5vw, 48px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em", marginBottom: 10, lineHeight: 1.1 }}>
-                Your trial lifecycle,<br />
-                <span style={{ background: "linear-gradient(135deg,#06b6d4,#6366f1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                  unwinding in real-time.
-                </span>
-              </h2>
-              <p style={{ fontSize: 14, color: "#475569", marginBottom: 36, lineHeight: 1.6 }}>Scroll to reveal each stage — powered by live APIs, ensemble ML, and Monte Carlo simulation.</p>
-            </motion.div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {DNA_STAGES.map((stage, i) => {
-                const revealed = stageProgress > (i / DNA_STAGES.length) * 0.85;
-                const active = stageProgress > (i / DNA_STAGES.length) * 0.85 && stageProgress < ((i + 1) / DNA_STAGES.length) * 0.85;
-                return (
-                  <motion.div key={stage.label}
-                    animate={{ opacity: revealed ? 1 : 0.25, x: revealed ? 0 : -16 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", borderRadius: 14,
-                      background: revealed ? `${stage.color}12` : "rgba(255,255,255,0.02)",
-                      border: `1px solid ${revealed ? `${stage.color}35` : "rgba(255,255,255,0.05)"}`,
-                      boxShadow: revealed ? `0 0 20px ${stage.color}12` : "none",
-                    }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: revealed ? `${stage.color}22` : "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <span style={{ fontSize: 13, fontWeight: 900, color: revealed ? stage.color : "#334155" }}>0{i + 1}</span>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: revealed ? "#e2e8f0" : "#334155" }}>{stage.label}</div>
-                      <div style={{ fontSize: 11, color: revealed ? "#64748b" : "#1e293b", marginTop: 2 }}>{stage.sub}</div>
-                    </div>
-                    {revealed && (
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ width: 7, height: 7, borderRadius: "50%", background: stage.color, boxShadow: `0 0 8px ${stage.color}` }} />
-                    )}
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right: DNA canvas */}
-          <div style={{ position: "relative", height: 540, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ position: "absolute", width: 340, height: 340, borderRadius: "50%", background: "radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
-            <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
-            <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", fontSize: 10, color: "#1e293b", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              scroll to reveal →
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Background blobs ─────────────────────────────────────────────────────────
 
 function Blobs() {
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
       {[
-        { w: 750, h: 750, top: -260, left: -260, color: "#0891b2", dur: 14, delay: 0, op: 0.1 },
-        { w: 550, h: 550, top: 60, right: -180, color: "#4f46e5", dur: 11, delay: 2, op: 0.1 },
-        { w: 450, h: 450, bottom: -120, left: "35%", color: "#ec4899", dur: 16, delay: 4, op: 0.07 },
+        { w: 700, h: 700, top: -240, left: -240, color: "#0891b2", dur: 14, delay: 0, op: 0.1 },
+        { w: 520, h: 520, top: 60, right: -160, color: "#4f46e5", dur: 11, delay: 2, op: 0.1 },
+        { w: 400, h: 400, bottom: -100, left: "35%", color: "#ec4899", dur: 16, delay: 4, op: 0.065 },
       ].map((b, i) => (
-        <motion.div key={i} style={{
-          position: "absolute", width: b.w, height: b.h,
-          top: b.top as any, left: b.left as any, right: (b as any).right, bottom: (b as any).bottom,
-          borderRadius: "50%",
-          background: `radial-gradient(circle, ${b.color} 0%, transparent 70%)`,
-          filter: "blur(72px)", opacity: b.op,
-        }}
-          animate={{ scale: [1, 1.15, 1], x: [-12, 12, -12], y: [-8, 8, -8] }}
-          transition={{ duration: b.dur, repeat: Infinity, ease: "easeInOut", delay: b.delay }}
-        />
+        <motion.div key={i}
+          style={{ position: "absolute", width: b.w, height: b.h, top: b.top as any, left: (b as any).left, right: (b as any).right, bottom: (b as any).bottom, borderRadius: "50%", background: `radial-gradient(circle, ${b.color} 0%, transparent 70%)`, filter: "blur(72px)", opacity: b.op }}
+          animate={{ scale: [1, 1.14, 1], x: [-10, 10, -10], y: [-6, 6, -6] }}
+          transition={{ duration: b.dur, repeat: Infinity, ease: "easeInOut", delay: b.delay }} />
       ))}
-      <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(6,182,212,0.05) 1px, transparent 1px), linear-gradient(90deg,rgba(6,182,212,0.05) 1px, transparent 1px)", backgroundSize: "72px 72px" }} />
+      <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(6,182,212,0.04) 1px, transparent 1px), linear-gradient(90deg,rgba(6,182,212,0.04) 1px, transparent 1px)", backgroundSize: "72px 72px" }} />
     </div>
   );
 }
@@ -283,7 +76,7 @@ function MouseGlow() {
   const sy = useSpring(pos.y, { stiffness: 100, damping: 26 });
   return (
     <motion.div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
-      <motion.div style={{ position: "absolute", width: 480, height: 480, borderRadius: "50%", background: "radial-gradient(circle, rgba(6,182,212,0.07) 0%, transparent 70%)", transform: "translate(-50%,-50%)", x: sx, y: sy }} />
+      <motion.div style={{ position: "absolute", width: 460, height: 460, borderRadius: "50%", background: "radial-gradient(circle, rgba(6,182,212,0.065) 0%, transparent 70%)", transform: "translate(-50%,-50%)", x: sx, y: sy }} />
     </motion.div>
   );
 }
@@ -292,36 +85,23 @@ function MouseGlow() {
 
 function Typewriter({ texts }: { texts: string[] }) {
   const [idx, setIdx] = useState(0);
-  const [displayed, setDisplayed] = useState("");
-  const [deleting, setDeleting] = useState(false);
+  const [disp, setDisp] = useState("");
+  const [del, setDel] = useState(false);
   useEffect(() => {
     const cur = texts[idx];
-    if (!deleting && displayed.length < cur.length) {
-      const t = setTimeout(() => setDisplayed(cur.slice(0, displayed.length + 1)), 55);
-      return () => clearTimeout(t);
-    }
-    if (!deleting && displayed.length === cur.length) {
-      const t = setTimeout(() => setDeleting(true), 2000);
-      return () => clearTimeout(t);
-    }
-    if (deleting && displayed.length > 0) {
-      const t = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 28);
-      return () => clearTimeout(t);
-    }
-    if (deleting && displayed.length === 0) {
-      setDeleting(false);
-      setIdx((idx + 1) % texts.length);
-    }
-  }, [displayed, deleting, idx, texts]);
+    if (!del && disp.length < cur.length) { const t = setTimeout(() => setDisp(cur.slice(0, disp.length + 1)), 52); return () => clearTimeout(t); }
+    if (!del && disp.length === cur.length) { const t = setTimeout(() => setDel(true), 2200); return () => clearTimeout(t); }
+    if (del && disp.length > 0) { const t = setTimeout(() => setDisp(disp.slice(0, -1)), 26); return () => clearTimeout(t); }
+    if (del && disp.length === 0) { setDel(false); setIdx((idx + 1) % texts.length); }
+  }, [disp, del, idx, texts]);
   return (
     <span style={{ color: "#22d3ee" }}>
-      {displayed}
-      <motion.span animate={{ opacity: [1, 0, 1] }} transition={{ duration: 0.75, repeat: Infinity }}>|</motion.span>
+      {disp}<motion.span animate={{ opacity: [1, 0, 1] }} transition={{ duration: 0.75, repeat: Infinity }}>|</motion.span>
     </span>
   );
 }
 
-// ─── Animated counter ─────────────────────────────────────────────────────────
+// ─── Counter ──────────────────────────────────────────────────────────────────
 
 function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
   const [val, setVal] = useState(0);
@@ -329,12 +109,11 @@ function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
   const inView = useInView(ref, { once: true, margin: "-60px" });
   useEffect(() => {
     if (!inView) return;
-    const dur = 1800;
     const start = performance.now();
+    const dur = 1800;
     const tick = (now: number) => {
       const p = Math.min((now - start) / dur, 1);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setVal(Math.round(eased * to));
+      setVal(Math.round((1 - Math.pow(1 - p, 3)) * to));
       if (p < 1) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
@@ -348,14 +127,13 @@ function FadeIn({ children, delay = 0, y = 28 }: { children: React.ReactNode; de
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-50px" });
   return (
-    <motion.div ref={ref} initial={{ opacity: 0, y }} animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay }}>
+    <motion.div ref={ref} initial={{ opacity: 0, y }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay }}>
       {children}
     </motion.div>
   );
 }
 
-// ─── 3D Tilt ──────────────────────────────────────────────────────────────────
+// ─── TiltCard ─────────────────────────────────────────────────────────────────
 
 function TiltCard({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -382,13 +160,13 @@ const TICKER = ["ClinicalTrials.gov v2 API", "FDA FAERS 20M+ Reports", "PubMed 3
 
 function Marquee() {
   return (
-    <div style={{ overflow: "hidden", padding: "14px 0", background: "rgba(6,182,212,0.05)", borderTop: "1px solid rgba(6,182,212,0.1)", borderBottom: "1px solid rgba(6,182,212,0.1)" }}>
+    <div style={{ overflow: "hidden", padding: "13px 0", background: "rgba(6,182,212,0.04)", borderTop: "1px solid rgba(6,182,212,0.09)", borderBottom: "1px solid rgba(6,182,212,0.09)" }}>
       <motion.div style={{ display: "flex", gap: 52, whiteSpace: "nowrap" }}
         animate={{ x: [0, -2600] }} transition={{ duration: 28, repeat: Infinity, ease: "linear" }}>
         {[...TICKER, ...TICKER, ...TICKER].map((item, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#06b6d4" }} />
-            <span style={{ fontSize: 11.5, fontWeight: 600, color: "#475569", letterSpacing: "0.08em", textTransform: "uppercase" }}>{item}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#475569", letterSpacing: "0.08em", textTransform: "uppercase" }}>{item}</span>
           </div>
         ))}
       </motion.div>
@@ -396,77 +174,46 @@ function Marquee() {
   );
 }
 
-// ─── Hero: Upright 3D card stack ──────────────────────────────────────────────
+// ─── Hero card ────────────────────────────────────────────────────────────────
 
 function HeroCard() {
   return (
     <div style={{ position: "relative", perspective: "1200px" }}>
-      {/* Shadow glow under stack */}
-      <div style={{ position: "absolute", bottom: -40, left: "10%", right: "10%", height: 60, background: "radial-gradient(ellipse, rgba(6,182,212,0.3), transparent 70%)", filter: "blur(16px)", borderRadius: "50%" }} />
-
-      {/* Card 3 (back) */}
-      <div style={{
-        position: "absolute", inset: 0,
-        transform: "translateZ(-60px) translateX(24px) translateY(18px) rotateY(2deg)",
-        borderRadius: 20, background: "rgba(6,182,212,0.04)", border: "1px solid rgba(6,182,212,0.08)",
-        boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
-      }} />
-      {/* Card 2 (mid) */}
-      <div style={{
-        position: "absolute", inset: 0,
-        transform: "translateZ(-28px) translateX(12px) translateY(9px) rotateY(1deg)",
-        borderRadius: 20, background: "rgba(15,26,50,0.8)", border: "1px solid rgba(255,255,255,0.05)",
-        boxShadow: "0 24px 60px rgba(0,0,0,0.5)",
-      }} />
-
-      {/* Main card (front) */}
-      <div style={{
-        position: "relative",
-        borderRadius: 20, overflow: "hidden",
-        background: "linear-gradient(160deg, #0f1f40 0%, #0a1628 100%)",
-        border: "1px solid rgba(6,182,212,0.18)",
-        boxShadow: "0 32px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(6,182,212,0.1), inset 0 1px 0 rgba(255,255,255,0.05)",
-      }}>
-        {/* Browser bar */}
+      <div style={{ position: "absolute", bottom: -40, left: "10%", right: "10%", height: 60, background: "radial-gradient(ellipse, rgba(6,182,212,0.28), transparent 70%)", filter: "blur(16px)", borderRadius: "50%" }} />
+      <div style={{ position: "absolute", inset: 0, transform: "translateZ(-60px) translateX(24px) translateY(18px) rotateY(2deg)", borderRadius: 20, background: "rgba(6,182,212,0.03)", border: "1px solid rgba(6,182,212,0.07)", boxShadow: "0 30px 80px rgba(0,0,0,0.5)" }} />
+      <div style={{ position: "absolute", inset: 0, transform: "translateZ(-28px) translateX(12px) translateY(9px) rotateY(1deg)", borderRadius: 20, background: "rgba(15,26,50,0.8)", border: "1px solid rgba(255,255,255,0.05)", boxShadow: "0 24px 60px rgba(0,0,0,0.5)" }} />
+      <div style={{ position: "relative", borderRadius: 20, overflow: "hidden", background: "linear-gradient(160deg, #0f1f40 0%, #0a1628 100%)", border: "1px solid rgba(6,182,212,0.18)", boxShadow: "0 32px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(6,182,212,0.1), inset 0 1px 0 rgba(255,255,255,0.05)" }}>
         <div style={{ padding: "12px 18px", background: "rgba(0,0,0,0.25)", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ display: "flex", gap: 6 }}>{["#ff5f57","#febc2e","#28c840"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />)}</div>
+          <div style={{ display: "flex", gap: 6 }}>{["#ff5f57", "#febc2e", "#28c840"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />)}</div>
           <div style={{ flex: 1, background: "rgba(255,255,255,0.04)", borderRadius: 6, padding: "4px 12px", fontSize: 11, color: "#334155" }}>app.hakase.ai/dashboard</div>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <motion.div animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 2, repeat: Infinity }} style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e" }} />
             <span style={{ fontSize: 9, color: "#22c55e", fontWeight: 700 }}>Live Engine</span>
           </div>
         </div>
-        {/* Dashboard UI */}
         <div style={{ display: "flex" }}>
-          {/* Sidebar */}
           <div style={{ width: 118, background: "rgba(0,0,0,0.2)", padding: "12px 8px", borderRight: "1px solid rgba(255,255,255,0.04)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14, padding: "0 4px" }}>
+            <div style={{ marginBottom: 14, padding: "0 4px" }}>
               <img src="/hakase-logo-transparent.png" alt="Hakase" style={{ height: 16, width: "auto", objectFit: "contain" }} />
             </div>
-            {["Overview","Trial Hub","Trial Explorer","KOL Finder","Safety Intel","Enrollment"].map((l, i) => (
+            {["Overview", "Trial Hub", "Trial Explorer", "KOL Finder", "Safety Intel", "Enrollment"].map((l, i) => (
               <div key={l} style={{ padding: "5px 8px", marginBottom: 2, borderRadius: 6, background: i === 1 ? "rgba(6,182,212,0.18)" : "transparent", fontSize: 9, color: i === 1 ? "#22d3ee" : "#334155", fontWeight: i === 1 ? 700 : 400, display: "flex", alignItems: "center", gap: 5 }}>
                 {i === 1 && <div style={{ width: 2.5, height: 10, background: "#06b6d4", borderRadius: 2, flexShrink: 0 }} />}
                 {l}
               </div>
             ))}
           </div>
-          {/* Main content */}
           <div style={{ flex: 1, padding: 14 }}>
             <div style={{ fontSize: 9, color: "#475569", marginBottom: 10 }}>Clinical Trial Hub · Stage 1: Discovery</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-              {[
-                { l: "ACTIVE TRIALS", v: "2,847", c: "#06b6d4" },
-                { l: "SAFETY SCORE", c: "#22c55e", v: "78/100" },
-                { l: "PUBMED ARTICLES", c: "#6366f1", v: "14,302" },
-                { l: "UNMET NEED", c: "#f59e0b", v: "82/100" },
-              ].map(k => (
+              {[{ l: "ACTIVE TRIALS", v: "2,847", c: "#06b6d4" }, { l: "SAFETY SCORE", c: "#22c55e", v: "78/100" }, { l: "PUBMED ARTICLES", c: "#6366f1", v: "14,302" }, { l: "UNMET NEED", c: "#f59e0b", v: "82/100" }].map(k => (
                 <div key={k.l} style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: "9px 11px", border: "1px solid rgba(255,255,255,0.05)" }}>
                   <div style={{ fontSize: 7, color: "#334155", letterSpacing: "0.08em", marginBottom: 3 }}>{k.l}</div>
                   <div style={{ fontSize: 17, fontWeight: 900, color: k.c }}>{k.v}</div>
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 7.5, color: "#334155", marginBottom: 5, letterSpacing: "0.08em" }}>PHASE DISTRIBUTION · COMPETITIVE LANDSCAPE</div>
+            <div style={{ fontSize: 7.5, color: "#334155", marginBottom: 5, letterSpacing: "0.08em" }}>PHASE DISTRIBUTION</div>
             <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 44 }}>
               {[35, 58, 100, 70, 50, 75, 40, 66, 30, 55].map((h, i) => (
                 <div key={i} style={{ flex: 1, height: `${h}%`, borderRadius: "3px 3px 0 0", background: i === 2 ? "#06b6d4" : "rgba(6,182,212,0.2)" }} />
@@ -475,8 +222,6 @@ function HeroCard() {
           </div>
         </div>
       </div>
-
-      {/* Floating stat chips */}
       <motion.div animate={{ y: [-5, 5, -5] }} transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
         style={{ position: "absolute", top: -18, right: -36, backdropFilter: "blur(16px)", background: "rgba(10,22,40,0.9)", border: "1px solid rgba(6,182,212,0.2)", borderRadius: 12, padding: "10px 14px", boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(6,182,212,0.1)" }}>
         <div style={{ fontSize: 9, color: "#475569", marginBottom: 2 }}>ML Success Score</div>
@@ -492,6 +237,234 @@ function HeroCard() {
         <motion.div animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 2, repeat: Infinity }} style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
         <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8" }}>3 live APIs</span>
       </motion.div>
+    </div>
+  );
+}
+
+// ─── Platform Showcase (replaces DNA section) ─────────────────────────────────
+
+const SHOWCASE_STAGES = [
+  {
+    id: 1, label: "Discovery & Feasibility", color: "#06b6d4", emoji: "🔬",
+    kpis: [{ l: "Active Trials", v: "2,847", c: "#06b6d4" }, { l: "Unmet Need", v: "82/100", c: "#f59e0b" }, { l: "PubMed Articles", v: "14.3K", c: "#10b981" }, { l: "FAERS Reports", v: "48,200", c: "#ef4444" }],
+    chart: { label: "Phase Distribution", bars: [{ l: "Phase 1", v: 35 }, { l: "Phase 2", v: 100 }, { l: "Phase 3", v: 78 }, { l: "Phase 4", v: 22 }] },
+    signal: "8 competitor trials recruiting · 3 PRR signals detected",
+  },
+  {
+    id: 2, label: "Site Selection", color: "#10b981", emoji: "📍",
+    kpis: [{ l: "Sites Ranked", v: "142", c: "#10b981" }, { l: "Top Score", v: "94/100", c: "#06b6d4" }, { l: "Countries", v: "18", c: "#f59e0b" }, { l: "Avg Startup", v: "6.2 wk", c: "#8b5cf6" }],
+    table: [{ rank: 1, name: "Mayo Clinic, MN", score: 94 }, { rank: 2, name: "MD Anderson, TX", score: 91 }, { rank: 3, name: "Mass General, MA", score: 88 }],
+    signal: "Shannon diversity index 0.81 · 3 high-velocity sites",
+  },
+  {
+    id: 3, label: "Regulatory & IND", color: "#f59e0b", emoji: "📋",
+    kpis: [{ l: "IND Prep", v: "8 wk", c: "#f59e0b" }, { l: "FDA Review", v: "30 days", c: "#06b6d4" }, { l: "Total Timeline", v: "16 wk", c: "#10b981" }, { l: "Designations", v: "2 eligible", c: "#8b5cf6" }],
+    checklist: ["Investigator Brochure", "Phase 1 Safety Protocol", "Manufacturing (CMC)", "Informed Consent Forms"],
+    signal: "Fast Track + Orphan Drug designation eligible",
+  },
+  {
+    id: 4, label: "Enrollment Simulation", color: "#ec4899", emoji: "📈",
+    kpis: [{ l: "P10 Optimistic", v: "14.2 mo", c: "#10b981" }, { l: "P50 Median", v: "18.4 mo", c: "#ec4899" }, { l: "P90 Conservative", v: "24.1 mo", c: "#ef4444" }, { l: "Monthly Rate", v: "12.3/site", c: "#06b6d4" }],
+    chart: { label: "Monte Carlo Distribution", bars: [{ l: "P10", v: 47, extra: "14.2 mo" }, { l: "P25", v: 65, extra: "" }, { l: "P50", v: 100, extra: "18.4 mo" }, { l: "P75", v: 78, extra: "" }, { l: "P90", v: 55, extra: "24.1 mo" }] },
+    signal: "1,000-iteration simulation from 89 real completed trials",
+  },
+  {
+    id: 5, label: "Execution Monitor", color: "#8b5cf6", emoji: "⚙️",
+    kpis: [{ l: "Deviations Est.", v: "24", c: "#ef4444" }, { l: "Dropout Rate", v: "8.2%", c: "#f59e0b" }, { l: "RBM Savings", v: "31%", c: "#10b981" }, { l: "Monitoring Cost", v: "$142K", c: "#8b5cf6" }],
+    risks: [{ label: "Protocol deviation — eligibility", sev: "HIGH" }, { label: "Missing data — PRO questionnaire", sev: "MEDIUM" }, { label: "SAE documentation delay", sev: "LOW" }],
+    signal: "Risk-based monitoring plan generated · 3 deviation patterns flagged",
+  },
+  {
+    id: 6, label: "Outcomes & ML", color: "#6366f1", emoji: "🧬",
+    kpis: [{ l: "Success Probability", v: "74%", c: "#10b981" }, { l: "GB Model", v: "71%", c: "#6366f1" }, { l: "RF Model", v: "77%", c: "#8b5cf6" }, { l: "Recommendation", v: "GO", c: "#22c55e" }],
+    gauge: { value: 74, label: "Ensemble ML Prediction" },
+    signal: "Ensemble GradientBoosting + RandomForest · cross-validated AUC 0.79",
+  },
+];
+
+function MiniGauge({ value, color, size = 100 }: { value: number; color: string; size?: number }) {
+  const cir = Math.PI * 44;
+  return (
+    <svg width={size} height={size * 0.6} viewBox="0 0 100 60">
+      <path d="M10,55 A40,40 0 0,1 90,55" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="7" strokeLinecap="round" />
+      <motion.path d="M10,55 A40,40 0 0,1 90,55" fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
+        initial={{ strokeDasharray: `0 ${cir}` }}
+        animate={{ strokeDasharray: `${(value / 100) * cir} ${cir}` }}
+        transition={{ duration: 1, ease: "easeOut" }} />
+      <text x="50" y="52" textAnchor="middle" style={{ fontSize: "17px", fontWeight: "900", fill: color }}>{value}%</text>
+    </svg>
+  );
+}
+
+function ShowcasePanel({ stage }: { stage: typeof SHOWCASE_STAGES[0] }) {
+  return (
+    <motion.div key={stage.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.35, ease: "easeOut" }}
+      style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* KPI strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+        {stage.kpis.map((k, i) => (
+          <div key={i} style={{ padding: "14px 16px", borderRadius: 14, background: `${k.c}10`, border: `1px solid ${k.c}28` }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: `${k.c}99`, marginBottom: 5 }}>{k.l}</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: k.c }}>{k.v}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart or table or checklist or gauge */}
+      <div style={{ borderRadius: 16, overflow: "hidden", background: "rgba(255,255,255,0.03)", border: `1px solid ${stage.color}22` }}>
+        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${stage.color}14`, background: `${stage.color}08`, fontSize: 12, fontWeight: 700, color: "#cbd5e1" }}>
+          {stage.chart?.label || stage.gauge?.label || (stage.table ? "Site Rankings" : stage.checklist ? "IND Requirements" : stage.risks ? "Deviation Risk Analysis" : "")}
+        </div>
+        <div style={{ padding: "14px 16px" }}>
+          {stage.chart && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {stage.chart.bars.map((b, i) => (
+                <div key={i}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 4 }}>
+                    <span>{b.l}</span>
+                    {(b as any).extra && <span style={{ fontWeight: 700, color: stage.color }}>{(b as any).extra}</span>}
+                  </div>
+                  <div style={{ height: 8, borderRadius: 999, background: "rgba(255,255,255,0.04)" }}>
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${b.v}%` }} transition={{ duration: 0.9, ease: "easeOut", delay: i * 0.08 }}
+                      style={{ height: "100%", borderRadius: 999, background: `linear-gradient(90deg, ${stage.color}, ${stage.color}88)` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {stage.table && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {stage.table.map((row, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: i === 0 ? `${stage.color}10` : "rgba(255,255,255,0.02)" }}>
+                  <div style={{ width: 22, height: 22, borderRadius: 8, background: `${stage.color}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: stage.color, flexShrink: 0 }}>#{row.rank}</div>
+                  <span style={{ fontSize: 12, color: "#cbd5e1", flex: 1 }}>{row.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 900, color: stage.color }}>{row.score}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {stage.checklist && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {stage.checklist.map((item, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 10, background: "rgba(255,255,255,0.02)" }}>
+                  <div style={{ width: 16, height: 16, borderRadius: 5, background: `${stage.color}18`, border: `1px solid ${stage.color}35`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke={stage.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </div>
+                  <span style={{ fontSize: 12, color: "#94a3b8" }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {stage.gauge && (
+            <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+              <MiniGauge value={stage.gauge.value} color={stage.color} size={120} />
+              <div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: "#22c55e", marginBottom: 4 }}>GO</div>
+                <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.5 }}>Ensemble ML recommends<br />proceeding to regulatory filing.</div>
+              </div>
+            </div>
+          )}
+          {stage.risks && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {stage.risks.map((r, i) => {
+                const rc = r.sev === "HIGH" ? "#ef4444" : r.sev === "MEDIUM" ? "#f59e0b" : "#10b981";
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10, background: `${rc}08`, border: `1px solid ${rc}20` }}>
+                    <span style={{ display: "inline-flex", padding: "2px 7px", borderRadius: 5, fontSize: 9, fontWeight: 700, background: `${rc}15`, color: rc, letterSpacing: "0.06em" }}>{r.sev}</span>
+                    <span style={{ fontSize: 12, color: "#94a3b8" }}>{r.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Signal line */}
+      <div style={{ fontSize: 11, color: "#334155", display: "flex", alignItems: "center", gap: 7 }}>
+        <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 2, repeat: Infinity }} style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />
+        {stage.signal}
+      </div>
+    </motion.div>
+  );
+}
+
+function PlatformShowcase() {
+  const [active, setActive] = useState(0);
+
+  // Auto-cycle through stages
+  useEffect(() => {
+    const t = setInterval(() => setActive(a => (a + 1) % SHOWCASE_STAGES.length), 4200);
+    return () => clearInterval(t);
+  }, []);
+
+  const stage = SHOWCASE_STAGES[active];
+
+  return (
+    <div style={{ padding: "100px 48px", maxWidth: 1280, margin: "0 auto" }}>
+      <FadeIn>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#06b6d4", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 14 }}>6-Stage Intelligence Engine</div>
+          <h2 style={{ fontSize: "clamp(28px, 4vw, 50px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em", marginBottom: 14 }}>
+            See the platform in action.
+          </h2>
+          <p style={{ fontSize: 15, color: "#475569", maxWidth: 480, margin: "0 auto", lineHeight: 1.7 }}>
+            Every stage powered by live APIs, ensemble ML, and real trial data.
+          </p>
+        </div>
+      </FadeIn>
+
+      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 28, alignItems: "start" }}>
+        {/* Stage tabs */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {SHOWCASE_STAGES.map((s, i) => (
+            <button key={s.id} onClick={() => setActive(i)}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14, background: active === i ? `${s.color}14` : "rgba(255,255,255,0.02)", border: `1px solid ${active === i ? `${s.color}35` : "rgba(255,255,255,0.05)"}`, cursor: "pointer", textAlign: "left", transition: "all 0.2s" }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: active === i ? `${s.color}22` : "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0, transition: "all 0.2s" }}>
+                {s.emoji}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: active === i ? "#e2e8f0" : "#475569", transition: "color 0.2s" }}>
+                  {s.label}
+                </div>
+                {active === i && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ height: 2, background: s.color, borderRadius: 999, marginTop: 4, width: "60%" }} />
+                )}
+              </div>
+              {active === i && (
+                <motion.div animate={{ x: [0, 3, 0] }} transition={{ duration: 1.5, repeat: Infinity }}
+                  style={{ width: 5, height: 5, borderRadius: "50%", background: s.color, flexShrink: 0 }} />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Active panel */}
+        <div style={{ borderRadius: 20, padding: 24, background: "linear-gradient(160deg, #0b1628 0%, #060f1e 100%)", border: `1px solid ${stage.color}22`, boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px ${stage.color}0a`, minHeight: 340 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+            <div style={{ padding: "8px 10px", borderRadius: 12, background: `${stage.color}14`, border: `1px solid ${stage.color}2a`, fontSize: 18 }}>{stage.emoji}</div>
+            <div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: stage.color, letterSpacing: "0.12em", textTransform: "uppercase" }}>Stage {stage.id}</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#e2e8f0" }}>{stage.label}</div>
+            </div>
+            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 999, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}>
+              <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 2, repeat: Infinity }} style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e" }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#22c55e" }}>Live data</span>
+            </div>
+          </div>
+          <AnimatePresence mode="wait">
+            <ShowcasePanel key={active} stage={stage} />
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Progress dots */}
+      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 32 }}>
+        {SHOWCASE_STAGES.map((s, i) => (
+          <button key={i} onClick={() => setActive(i)}
+            style={{ width: active === i ? 24 : 6, height: 6, borderRadius: 999, background: active === i ? s.color : "rgba(255,255,255,0.12)", border: "none", cursor: "pointer", transition: "all 0.3s", padding: 0 }} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -518,7 +491,7 @@ export default function LandingPage() {
     <div style={{ background: "#020817", minHeight: "100vh", fontFamily: "'Inter', -apple-system, sans-serif", overflowX: "hidden" }}>
       <MouseGlow />
 
-      {/* ── Nav ───────────────────────────────────────────────────────────── */}
+      {/* ── Nav ─────────────────────────────────────────────────────────── */}
       <motion.nav initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.6 }}
         style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "0 40px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(2,8,23,0.75)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(6,182,212,0.08)" }}>
         <img src="/hakase-logo-transparent.png" alt="Hakase AI" style={{ height: 30, width: "auto", objectFit: "contain" }} />
@@ -529,30 +502,24 @@ export default function LandingPage() {
         </div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           <motion.button onClick={() => nav("/dashboard")} whileHover={{ color: "#22d3ee" }} style={{ fontSize: 13.5, fontWeight: 500, color: "#64748b", background: "none", border: "none", cursor: "pointer" }}>Sign In</motion.button>
-          <motion.button onClick={() => nav("/dashboard")}
-            whileHover={{ scale: 1.04, boxShadow: "0 0 28px rgba(6,182,212,0.5)" }}
-            whileTap={{ scale: 0.97 }}
+          <motion.button onClick={() => nav("/dashboard")} whileHover={{ scale: 1.04, boxShadow: "0 0 28px rgba(6,182,212,0.5)" }} whileTap={{ scale: 0.97 }}
             style={{ padding: "8px 20px", borderRadius: 10, background: "linear-gradient(135deg,#0891b2,#6366f1)", color: "#fff", fontSize: 13.5, fontWeight: 700, border: "none", cursor: "pointer", boxShadow: "0 0 16px rgba(6,182,212,0.3)" }}>
             Launch App →
           </motion.button>
         </div>
       </motion.nav>
 
-      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <div ref={heroRef} style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", overflow: "hidden", paddingTop: 64 }}>
         <ParticleCanvas />
         <Blobs />
-
         <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: 1280, margin: "0 auto", padding: "80px 48px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
-          {/* Left */}
           <motion.div style={{ y: heroY, opacity: heroOpacity }}>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
               style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 100, background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.2)", marginBottom: 28 }}>
-              <motion.div animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 2, repeat: Infinity }}
-                style={{ width: 6, height: 6, borderRadius: "50%", background: "#06b6d4" }} />
+              <motion.div animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 2, repeat: Infinity }} style={{ width: 6, height: 6, borderRadius: "50%", background: "#06b6d4" }} />
               <span style={{ fontSize: 11, fontWeight: 700, color: "#22d3ee", letterSpacing: "0.1em", textTransform: "uppercase" }}>AI-Powered Clinical Intelligence</span>
             </motion.div>
-
             <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
               style={{ fontSize: "clamp(42px, 5vw, 66px)", fontWeight: 900, lineHeight: 1.07, color: "#fff", marginBottom: 20, letterSpacing: "-0.03em" }}>
               The Intelligence<br />Platform for{" "}
@@ -560,18 +527,13 @@ export default function LandingPage() {
                 Clinical Trials
               </span>
             </motion.h1>
-
             <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
               style={{ fontSize: 16.5, color: "#64748b", lineHeight: 1.7, marginBottom: 28, maxWidth: 440 }}>
               From discovery to outcome prediction —{" "}
               <Typewriter texts={["real ClinicalTrials.gov data.", "live FDA FAERS signals.", "PubMed evidence synthesis.", "Monte Carlo enrollment modeling."]} />
             </motion.p>
-
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
-              style={{ display: "flex", gap: 12, marginBottom: 40 }}>
-              <motion.button onClick={() => nav("/dashboard")}
-                whileHover={{ scale: 1.04, boxShadow: "0 0 44px rgba(6,182,212,0.55)" }}
-                whileTap={{ scale: 0.96 }}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }} style={{ display: "flex", gap: 12, marginBottom: 40 }}>
+              <motion.button onClick={() => nav("/dashboard")} whileHover={{ scale: 1.04, boxShadow: "0 0 44px rgba(6,182,212,0.55)" }} whileTap={{ scale: 0.96 }}
                 style={{ padding: "14px 28px", borderRadius: 13, background: "linear-gradient(135deg,#0891b2,#6366f1)", color: "#fff", fontSize: 15, fontWeight: 700, border: "none", cursor: "pointer", boxShadow: "0 0 24px rgba(6,182,212,0.35)" }}>
                 Launch Dashboard →
               </motion.button>
@@ -580,9 +542,7 @@ export default function LandingPage() {
                 See How It Works
               </motion.button>
             </motion.div>
-
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
-              style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
               {[{ label: "ClinicalTrials.gov", color: "#06b6d4" }, { label: "FDA FAERS", color: "#ef4444" }, { label: "PubMed", color: "#10b981" }].map((s, i) => (
                 <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: s.color }} />
@@ -593,16 +553,10 @@ export default function LandingPage() {
               <span style={{ fontSize: 11, color: "#334155", marginLeft: 4 }}>Live APIs</span>
             </motion.div>
           </motion.div>
-
-          {/* Right: upright 3D card stack */}
           <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
-            <TiltCard>
-              <HeroCard />
-            </TiltCard>
+            <TiltCard><HeroCard /></TiltCard>
           </motion.div>
         </div>
-
-        {/* Scroll indicator */}
         <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 2, repeat: Infinity }}
           style={{ position: "absolute", bottom: 32, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
           <div style={{ width: 1, height: 36, background: "linear-gradient(180deg, transparent, rgba(6,182,212,0.5))" }} />
@@ -610,24 +564,24 @@ export default function LandingPage() {
         </motion.div>
       </div>
 
-      {/* ── Marquee ────────────────────────────────────────────────────────── */}
+      {/* ── Marquee ──────────────────────────────────────────────────────── */}
       <Marquee />
 
-      {/* ── DNA Section ────────────────────────────────────────────────────── */}
-      <DNASection />
+      {/* ── Platform Showcase ─────────────────────────────────────────────── */}
+      <PlatformShowcase />
 
-      {/* ── Stats ──────────────────────────────────────────────────────────── */}
-      <div style={{ padding: "100px 48px", maxWidth: 1280, margin: "0 auto" }}>
+      {/* ── Stats ────────────────────────────────────────────────────────── */}
+      <div style={{ padding: "80px 48px 100px", maxWidth: 1280, margin: "0 auto" }}>
         <FadeIn>
-          <div style={{ textAlign: "center", marginBottom: 64 }}>
+          <div style={{ textAlign: "center", marginBottom: 56 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#06b6d4", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 14 }}>Real Data. Real Intelligence.</div>
-            <h2 style={{ fontSize: "clamp(30px, 4vw, 50px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>
+            <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>
               Backed by millions of{" "}
               <span style={{ background: "linear-gradient(135deg,#06b6d4,#6366f1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>real data points.</span>
             </h2>
           </div>
         </FadeIn>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18 }}>
           {[
             { n: 500, suf: "K+", label: "Clinical Trials Indexed", color: "#06b6d4", sub: "ClinicalTrials.gov" },
             { n: 20, suf: "M+", label: "Adverse Event Reports", color: "#ef4444", sub: "OpenFDA FAERS" },
@@ -637,7 +591,7 @@ export default function LandingPage() {
             <FadeIn key={s.label} delay={i * 0.08}>
               <div style={{ textAlign: "center", padding: "36px 20px", borderRadius: 20, background: "linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))", border: "1px solid rgba(255,255,255,0.06)", position: "relative", overflow: "hidden" }}>
                 <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 80, height: 2, background: s.color, borderRadius: "0 0 4px 4px" }} />
-                <div style={{ fontSize: "clamp(38px, 4vw, 56px)", fontWeight: 900, color: s.color, lineHeight: 1, marginBottom: 10 }}>
+                <div style={{ fontSize: "clamp(36px, 4vw, 52px)", fontWeight: 900, color: s.color, lineHeight: 1, marginBottom: 10 }}>
                   <Counter to={s.n} suffix={s.suf} />
                 </div>
                 <div style={{ fontSize: 13, color: "#e2e8f0", fontWeight: 600, marginBottom: 4 }}>{s.label}</div>
@@ -648,29 +602,27 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── Features ───────────────────────────────────────────────────────── */}
+      {/* ── Features ─────────────────────────────────────────────────────── */}
       <div style={{ padding: "20px 48px 100px", maxWidth: 1280, margin: "0 auto" }}>
         <FadeIn>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <div style={{ textAlign: "center", marginBottom: 52 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#06b6d4", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 14 }}>Platform Capabilities</div>
-            <h2 style={{ fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>
-              Every stage. Intelligence-first.
-            </h2>
+            <h2 style={{ fontSize: "clamp(24px, 3.5vw, 42px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>Every stage. Intelligence-first.</h2>
           </div>
         </FadeIn>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           {features.map((f, i) => (
             <FadeIn key={f.title} delay={i * 0.07}>
               <TiltCard style={{ height: "100%" }}>
                 <motion.div whileHover={{ borderColor: `${f.accent}50` }}
-                  style={{ height: "100%", padding: "26px", borderRadius: 18, background: "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))", border: "1px solid rgba(255,255,255,0.07)", position: "relative", overflow: "hidden" }}>
+                  style={{ height: "100%", padding: "24px", borderRadius: 18, background: "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))", border: "1px solid rgba(255,255,255,0.07)", position: "relative", overflow: "hidden" }}>
                   <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${f.accent}, transparent)` }} />
-                  <div style={{ width: 48, height: 48, borderRadius: 14, background: `${f.accent}14`, border: `1px solid ${f.accent}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 16 }}>{f.emoji}</div>
-                  <h3 style={{ fontSize: 15, fontWeight: 800, color: "#fff", marginBottom: 8 }}>{f.title}</h3>
-                  <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.65, marginBottom: 16 }}>{f.desc}</p>
+                  <div style={{ width: 46, height: 46, borderRadius: 13, background: `${f.accent}14`, border: `1px solid ${f.accent}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, marginBottom: 14 }}>{f.emoji}</div>
+                  <h3 style={{ fontSize: 14, fontWeight: 800, color: "#fff", marginBottom: 7 }}>{f.title}</h3>
+                  <p style={{ fontSize: 12.5, color: "#475569", lineHeight: 1.65, marginBottom: 14 }}>{f.desc}</p>
                   <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e" }} />
-                    <span style={{ fontSize: 10.5, color: "#22c55e", fontWeight: 600 }}>Live data connected</span>
+                    <span style={{ fontSize: 10, color: "#22c55e", fontWeight: 600 }}>Live data connected</span>
                   </div>
                 </motion.div>
               </TiltCard>
@@ -679,47 +631,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── Live Sources ────────────────────────────────────────────────────── */}
-      <div style={{ padding: "60px 48px 100px", maxWidth: 1280, margin: "0 auto" }}>
-        <FadeIn>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#06b6d4", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 14 }}>Connected In Real-Time</div>
-            <h2 style={{ fontSize: "clamp(26px, 3.5vw, 44px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>
-              Not scraped. Not cached.{" "}
-              <span style={{ background: "linear-gradient(135deg,#06b6d4,#6366f1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Directly live.</span>
-            </h2>
-          </div>
-        </FadeIn>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18 }}>
-          {[
-            { name: "ClinicalTrials.gov", tag: "v2 REST API", stat: "500K+ trials", dot: "#06b6d4", icon: "🧪", desc: "NCBI's global registry of clinical research. Real-time search with 200+ fields." },
-            { name: "FDA FAERS", tag: "OpenFDA", stat: "20M+ AEs", dot: "#ef4444", icon: "🛡️", desc: "Post-market drug safety adverse event database. 3 search strategy fallback." },
-            { name: "PubMed / NCBI", tag: "Entrez API", stat: "36M+ articles", dot: "#10b981", icon: "📖", desc: "Biomedical literature. esearch + esummary for titles, journals, and abstracts." },
-            { name: "OpenFDA Labels", tag: "REST API", stat: "140K+ labels", dot: "#f59e0b", icon: "💊", desc: "FDA-approved drug labeling. Also covers drug recall and enforcement data." },
-          ].map((src, i) => (
-            <FadeIn key={src.name} delay={i * 0.09}>
-              <TiltCard>
-                <div style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 18, padding: "24px 22px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-                    <span style={{ fontSize: 28 }}>{src.icon}</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <motion.div animate={{ scale: [1, 1.5, 1], opacity: [1, 0.4, 1] }} transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.3 }}
-                        style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e" }} />
-                      <span style={{ fontSize: 9.5, color: "#22c55e", fontWeight: 700 }}>LIVE</span>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: "#fff", marginBottom: 2 }}>{src.name}</div>
-                  <div style={{ fontSize: 9.5, color: src.dot, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>{src.tag}</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: src.dot, marginBottom: 8 }}>{src.stat}</div>
-                  <div style={{ fontSize: 12, color: "#334155", lineHeight: 1.55 }}>{src.desc}</div>
-                </div>
-              </TiltCard>
-            </FadeIn>
-          ))}
-        </div>
-      </div>
-
-      {/* ── CTA ────────────────────────────────────────────────────────────── */}
+      {/* ── CTA ──────────────────────────────────────────────────────────── */}
       <div style={{ position: "relative", overflow: "hidden", margin: "0 48px 100px", borderRadius: 26 }}>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, #050f20, #0a1628, #060d1f)" }} />
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 30% 50%, rgba(6,182,212,0.1), transparent 60%)" }} />
@@ -730,21 +642,16 @@ export default function LandingPage() {
           style={{ position: "absolute", width: 400, height: 400, border: "1px solid rgba(99,102,241,0.1)", borderRadius: "50%", top: "50%", left: "50%", transform: "translate(-50%,-50%)" }} />
         <div style={{ position: "relative", zIndex: 1, padding: "72px 60px", textAlign: "center" }}>
           <FadeIn>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 100, background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.2)", marginBottom: 26 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#22d3ee", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ready to accelerate?</span>
-            </div>
-            <h2 style={{ fontSize: "clamp(30px, 5vw, 62px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em", marginBottom: 18 }}>
+            <h2 style={{ fontSize: "clamp(28px, 5vw, 58px)", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em", marginBottom: 18 }}>
               Your first simulation<br />
               <span style={{ background: "linear-gradient(135deg,#06b6d4,#6366f1,#ec4899)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
                 starts in 30 seconds.
               </span>
             </h2>
-            <p style={{ fontSize: 15, color: "#475569", maxWidth: 460, margin: "0 auto 32px", lineHeight: 1.7 }}>
+            <p style={{ fontSize: 15, color: "#475569", maxWidth: 440, margin: "0 auto 32px", lineHeight: 1.7 }}>
               Enter your condition and drug. Hakase pulls live data from five global sources instantly.
             </p>
-            <motion.button onClick={() => nav("/dashboard")}
-              whileHover={{ scale: 1.06, boxShadow: "0 0 50px rgba(6,182,212,0.55)" }}
-              whileTap={{ scale: 0.96 }}
+            <motion.button onClick={() => nav("/dashboard")} whileHover={{ scale: 1.06, boxShadow: "0 0 50px rgba(6,182,212,0.55)" }} whileTap={{ scale: 0.96 }}
               style={{ padding: "16px 36px", borderRadius: 14, background: "linear-gradient(135deg,#0891b2,#6366f1)", color: "#fff", fontSize: 16, fontWeight: 800, border: "none", cursor: "pointer", boxShadow: "0 0 30px rgba(6,182,212,0.35)" }}>
               Launch the Dashboard →
             </motion.button>
@@ -752,7 +659,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
       <footer style={{ padding: "28px 48px", borderTop: "1px solid rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <img src="/hakase-logo-transparent.png" alt="Hakase AI" style={{ height: 24, width: "auto", objectFit: "contain", opacity: 0.7 }} />
         <div style={{ fontSize: 11.5, color: "#1e293b" }}>Live APIs: ClinicalTrials.gov · PubMed · FDA FAERS · OpenFDA</div>
