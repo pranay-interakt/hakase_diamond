@@ -150,59 +150,135 @@ async def _fetch_similar(condition: str, phase: Optional[str], status: Optional[
 
 
 async def _fetch_faers(drug: str) -> dict:
-    try:
-        import httpx
-        url = f"https://api.fda.gov/drug/event.json"
-        params = {
-            "search": f'patient.drug.medicinalproduct:"{drug}"',
-            "limit": 1,
-            "count": "patient.reaction.reactionmeddrapt.exact",
-        }
-        async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.get(url, params=params)
-            if r.status_code == 200:
-                data = r.json()
-                results = data.get("results", [])
-                total = data.get("meta", {}).get("results", {}).get("total", 0)
-                top_reactions = [
-                    {"reaction": item.get("term", ""), "count": item.get("count", 0)}
-                    for item in results[:10]
-                ]
-                return {
-                    "topReactions": top_reactions,
-                    "totalReports": total,
-                    "proofLink": f"https://open.fda.gov/apis/drug/event/",
-                    "source": "OpenFDA FAERS",
+    """
+    Robust FAERS fetch — tries multiple search strategies:
+    1. medicinalproduct exact match
+    2. openfda.generic_name
+    3. openfda.brand_name
+    Also fetches drug recall/enforcement data from OpenFDA.
+    """
+    import httpx
+    strategies = [
+        f'patient.drug.medicinalproduct:"{drug}"',
+        f'patient.drug.openfda.generic_name:"{drug}"',
+        f'patient.drug.openfda.brand_name:"{drug}"',
+    ]
+    async with httpx.AsyncClient(timeout=20) as client:
+        # Try FAERS adverse event count
+        best = {}
+        for search_expr in strategies:
+            try:
+                params = {
+                    "search": search_expr,
+                    "limit": 1,
+                    "count": "patient.reaction.reactionmeddrapt.exact",
                 }
-    except Exception as e:
-        logger.warning(f"[TrialHub] FAERS fetch failed: {e}")
-    return {}
+                r = await client.get("https://api.fda.gov/drug/event.json", params=params)
+                if r.status_code == 200:
+                    data = r.json()
+                    results = data.get("results", [])
+                    total = data.get("meta", {}).get("results", {}).get("total", 0)
+                    if total > 0:
+                        best = {
+                            "topReactions": [
+                                {"reaction": item.get("term", ""), "count": item.get("count", 0)}
+                                for item in results[:10]
+                            ],
+                            "totalReports": total,
+                            "searchStrategy": search_expr,
+                            "proofLink": f"https://api.fda.gov/drug/event.json?search={search_expr}&count=patient.reaction.reactionmeddrapt.exact",
+                            "source": "OpenFDA FAERS",
+                        }
+                        break
+            except Exception as e:
+                logger.debug(f"[FAERS] strategy failed: {e}")
+
+        # Fetch recall/enforcement data
+        try:
+            recall_params = {
+                "search": f'product_description:"{drug}"',
+                "limit": 5,
+            }
+            rr = await client.get("https://api.fda.gov/drug/enforcement.json", params=recall_params)
+            if rr.status_code == 200:
+                recall_data = rr.json()
+                recall_results = recall_data.get("results", [])
+                best["recallCount"] = recall_data.get("meta", {}).get("results", {}).get("total", 0)
+                best["recentRecalls"] = [
+                    {
+                        "reason": r.get("reason_for_recall", "")[:100],
+                        "classification": r.get("classification", ""),
+                        "status": r.get("status", ""),
+                        "date": r.get("recall_initiation_date", ""),
+                    }
+                    for r in recall_results[:3]
+                ]
+        except Exception as e:
+            logger.debug(f"[FAERS] Recall fetch failed: {e}")
+
+    return best if best else {"totalReports": 0, "topReactions": [], "source": "OpenFDA FAERS (no matches)"}
 
 
 async def _fetch_pubmed_count(condition: str, intervention: Optional[str] = None) -> dict:
+    """
+    Fetch PubMed article count + top article IDs + summaries for the condition/drug.
+    Uses NCBI E-utilities (esearch + esummary).
+    """
+    import httpx
+    query = condition
+    if intervention:
+        query += f" AND {intervention}"
+    ct_query = query + " AND (clinical trial[pt])"
+    base = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
     try:
-        import httpx
-        query = condition
-        if intervention:
-            query += f" AND {intervention}"
-        params = {
-            "db": "pubmed",
-            "term": query + " AND (clinical trial[pt])",
-            "rettype": "count",
-            "retmode": "json",
-        }
-        async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi", params=params)
+        async with httpx.AsyncClient(timeout=20) as client:
+            # Get count of all CT articles
+            r = await client.get(f"{base}/esearch.fcgi", params={
+                "db": "pubmed", "term": ct_query, "rettype": "count", "retmode": "json"
+            })
+            ct_count = 0
+            all_count = 0
+            ids = []
             if r.status_code == 200:
-                count = int(r.json().get("esearchresult", {}).get("count", 0))
-                return {
-                    "articleCount": count,
-                    "proofLink": f"https://pubmed.ncbi.nlm.nih.gov/?term={query}",
-                    "source": "PubMed (NCBI E-utilities)",
-                }
+                ct_count = int(r.json().get("esearchresult", {}).get("count", 0))
+
+            # Get top 5 most recent articles (any pub type) for titles
+            r2 = await client.get(f"{base}/esearch.fcgi", params={
+                "db": "pubmed", "term": query, "retmax": 5, "sort": "relevance", "retmode": "json"
+            })
+            if r2.status_code == 200:
+                result_data = r2.json().get("esearchresult", {})
+                all_count = int(result_data.get("count", 0))
+                ids = result_data.get("idlist", [])
+
+            top_articles = []
+            if ids:
+                r3 = await client.get(f"{base}/esummary.fcgi", params={
+                    "db": "pubmed", "id": ",".join(ids), "retmode": "json"
+                })
+                if r3.status_code == 200:
+                    summaries = r3.json().get("result", {})
+                    for pmid in ids:
+                        art = summaries.get(pmid, {})
+                        if art and art.get("title"):
+                            top_articles.append({
+                                "pmid": pmid,
+                                "title": art.get("title", "")[:120],
+                                "journal": art.get("fulljournalname", ""),
+                                "year": art.get("pubdate", "")[:4],
+                                "link": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+                            })
+
+            return {
+                "articleCount": all_count,
+                "clinicalTrialPubCount": ct_count,
+                "topArticles": top_articles,
+                "proofLink": f"https://pubmed.ncbi.nlm.nih.gov/?term={query}",
+                "source": "PubMed (NCBI E-utilities)",
+            }
     except Exception as e:
         logger.warning(f"[TrialHub] PubMed fetch failed: {e}")
-    return {"articleCount": 0}
+    return {"articleCount": 0, "clinicalTrialPubCount": 0, "topArticles": []}
 
 
 def _derive_rates(trials: list[dict]) -> tuple[float, str]:
