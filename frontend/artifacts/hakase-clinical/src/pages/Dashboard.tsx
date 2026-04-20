@@ -63,7 +63,7 @@ const navGroups: {
 const navItems = navGroups.flatMap(g => g.items);
 
 const features: { icon: React.ReactNode; title: string; desc: string; module: Module }[] = [
-  { icon: <TestTubeDiagonal className="h-5 w-5 text-pink-600" />, title: "Clinical Trial Hub", desc: "Simulate the entire clinical trial lifecycle in 7 stages — from discovery to outcomes — using live API data, ML success prediction, Monte Carlo enrollment, and cost optimization.", module: "trialhub" },
+  { icon: <TestTubeDiagonal className="h-5 w-5 text-pink-600" />, title: "Clinical Trial Hub", desc: "Simulate the entire clinical trial lifecycle in 6 stages — from discovery to outcomes — using live API data, ML success prediction, Monte Carlo enrollment, and cost optimization.", module: "trialhub" },
   { icon: <FileText className="h-5 w-5 text-pink-500" />, title: "Protocol Studio", desc: "Upload protocol PDFs. Run parameter simulations, track amendments, get AI suggestions, and discover sites & KOLs.", module: "protocol" },
   { icon: <Search className="h-5 w-5 text-blue-500" />, title: "Trial Explorer", desc: "Search 500K+ trials from ClinicalTrials.gov in real time by condition, drug, phase, or status.", module: "explorer" },
   { icon: <Users className="h-5 w-5 text-indigo-500" />, title: "KOL Identification", desc: "Identify Key Opinion Leaders from PubMed authorship data — ranked by publications and clinical trial involvement.", module: "kols" },
