@@ -840,7 +840,7 @@ export default function LandingPage() {
             {/* Screenshot */}
             <div style={{ lineHeight: 0 }}>
               <img
-                src="/dashboard-real.png"
+                src="/dashboard-screenshot.jpg"
                 alt="Hakase Dashboard"
                 style={{
                   width: "100%",
