@@ -232,8 +232,7 @@ export default function LandingPage() {
       style={{
         background: "#faf9f7",
         minHeight: "100vh",
-        fontFamily:
-          "'Inter', 'Helvetica Neue', -apple-system, sans-serif",
+        fontFamily: "'DM Sans', -apple-system, sans-serif",
         color: "#0a0a0a",
         overflowX: "hidden",
       }}
@@ -367,48 +366,16 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.85, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
             style={{
-              fontSize: "clamp(44px, 5.5vw, 76px)",
+              fontSize: "clamp(42px, 5.2vw, 72px)",
               fontWeight: 300,
-              lineHeight: 1.07,
-              letterSpacing: "-0.03em",
+              lineHeight: 1.1,
+              letterSpacing: "-0.02em",
               color: "#0a0a0a",
-              margin: 0,
-              marginBottom: 8,
+              margin: "0 0 40px 0",
             }}
           >
-            Accelerating
-          </motion.h1>
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, delay: 0.26, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              fontSize: "clamp(44px, 5.5vw, 76px)",
-              fontWeight: 800,
-              lineHeight: 1.07,
-              letterSpacing: "-0.03em",
-              color: "#0a0a0a",
-              margin: 0,
-              marginBottom: 8,
-              fontStyle: "italic",
-            }}
-          >
-            Clinical Trials
-          </motion.h1>
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, delay: 0.34, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              fontSize: "clamp(44px, 5.5vw, 76px)",
-              fontWeight: 300,
-              lineHeight: 1.07,
-              letterSpacing: "-0.03em",
-              color: "#0a0a0a",
-              margin: 0,
-              marginBottom: 40,
-            }}
-          >
+            Accelerating<br />
+            <span style={{ fontWeight: 700 }}>Clinical Trials</span><br />
             with AI
           </motion.h1>
 
@@ -723,6 +690,222 @@ export default function LandingPage() {
         ))}
       </section>
 
+      {/* ── Dashboard Preview ──────────────────────────────────────────────── */}
+      <section
+        style={{
+          padding: "80px 64px 100px",
+          background: "#f5f3ef",
+          borderTop: "1px solid #e8e4de",
+          borderBottom: "1px solid #e8e4de",
+        }}
+      >
+        <Reveal>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "space-between",
+              marginBottom: 52,
+            }}
+          >
+            <div>
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "#999",
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  display: "block",
+                  marginBottom: 12,
+                }}
+              >
+                + What to expect
+              </span>
+              <h2
+                style={{
+                  fontSize: "clamp(30px, 3.5vw, 46px)",
+                  fontWeight: 300,
+                  letterSpacing: "-0.02em",
+                  color: "#0a0a0a",
+                  margin: 0,
+                  lineHeight: 1.2,
+                }}
+              >
+                One dashboard.{" "}
+                <span style={{ fontWeight: 700 }}>All the intelligence.</span>
+              </h2>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate("/dashboard")}
+              style={{
+                padding: "11px 26px",
+                borderRadius: 8,
+                background: "#0a0a0a",
+                color: "#fff",
+                border: "none",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                flexShrink: 0,
+                marginLeft: 32,
+              }}
+            >
+              Try it live →
+            </motion.button>
+          </div>
+        </Reveal>
+
+        {/* Browser-chrome mockup */}
+        <Reveal delay={0.1} y={60}>
+          <motion.div
+            whileHover={{ y: -4 }}
+            transition={{ duration: 0.35 }}
+            style={{
+              borderRadius: 14,
+              overflow: "hidden",
+              border: "1px solid #ddd9d2",
+              boxShadow:
+                "0 32px 80px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.06)",
+              background: "#fff",
+            }}
+          >
+            {/* Window chrome bar */}
+            <div
+              style={{
+                padding: "11px 18px",
+                background: "#f0ede8",
+                borderBottom: "1px solid #e0dcd5",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", gap: 6 }}>
+                {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+                  <div
+                    key={c}
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      background: c,
+                    }}
+                  />
+                ))}
+              </div>
+              <div
+                style={{
+                  flex: 1,
+                  background: "#e8e4de",
+                  borderRadius: 5,
+                  padding: "4px 12px",
+                  fontSize: 11,
+                  color: "#999",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.5, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    background: "#22c55e",
+                    flexShrink: 0,
+                  }}
+                />
+                app.hakase.ai/dashboard
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {["#bbb", "#bbb", "#bbb"].map((c, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: 13,
+                      height: 13,
+                      borderRadius: 3,
+                      background: c,
+                      opacity: 0.4,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Screenshot */}
+            <div style={{ position: "relative", lineHeight: 0 }}>
+              <img
+                src="/dashboard-mockup.png"
+                alt="Hakase Dashboard"
+                style={{
+                  width: "100%",
+                  display: "block",
+                  maxHeight: 560,
+                  objectFit: "cover",
+                  objectPosition: "top center",
+                }}
+              />
+              {/* Bottom fade */}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 100,
+                  background:
+                    "linear-gradient(to top, rgba(245,243,239,0.95), transparent)",
+                }}
+              />
+            </div>
+          </motion.div>
+        </Reveal>
+
+        {/* Feature chips below mockup */}
+        <Reveal delay={0.2}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              justifyContent: "center",
+              marginTop: 36,
+            }}
+          >
+            {[
+              "Clinical Trial Hub",
+              "Evidence Library",
+              "Safety Intelligence",
+              "KOL Finder",
+              "Site Intelligence",
+              "Enrollment Simulation",
+              "Regulatory Mapping",
+              "ML Prediction",
+            ].map((chip) => (
+              <div
+                key={chip}
+                style={{
+                  padding: "7px 16px",
+                  borderRadius: 999,
+                  background: "#fff",
+                  border: "1px solid #e8e4de",
+                  fontSize: 12.5,
+                  color: "#555",
+                  fontWeight: 500,
+                }}
+              >
+                {chip}
+              </div>
+            ))}
+          </div>
+        </Reveal>
+      </section>
+
       {/* ── How We Work ────────────────────────────────────────────────────── */}
       <section style={{ padding: "100px 64px", background: "#faf9f7" }}>
         <Reveal>
@@ -749,7 +932,7 @@ export default function LandingPage() {
                 lineHeight: 1.1,
               }}
             >
-              HOW WE <span style={{ fontWeight: 800, fontStyle: "italic" }}>WORK</span>
+              HOW WE <span style={{ fontWeight: 800 }}>WORK</span>
             </h2>
           </div>
         </Reveal>
@@ -853,7 +1036,7 @@ export default function LandingPage() {
               }}
             >
               Everything you need for{" "}
-              <span style={{ fontWeight: 800, fontStyle: "italic" }}>
+              <span style={{ fontWeight: 800 }}>
                 end-to-end trials
               </span>
             </h2>
@@ -1000,8 +1183,7 @@ export default function LandingPage() {
                   fontSize: "clamp(32px, 4vw, 52px)",
                   fontWeight: 800,
                   color: "#fff",
-                  letterSpacing: "-0.03em",
-                  fontStyle: "italic",
+                  letterSpacing: "-0.02em",
                   lineHeight: 1.1,
                   margin: "0 0 32px 0",
                 }}
