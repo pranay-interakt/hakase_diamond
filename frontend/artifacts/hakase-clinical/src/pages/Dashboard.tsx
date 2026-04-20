@@ -277,46 +277,46 @@ function Overview({ onNavigate }: { onNavigate: (m: Module) => void }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
 
       {/* Hero banner */}
-      <div style={{ position: "relative", borderRadius: 20, overflow: "hidden", background: "linear-gradient(135deg, #0c1426 0%, #0f1f40 50%, #0c1830 100%)" }}>
-        <div style={{ position: "absolute", top: -80, right: -80, width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.2), transparent)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: -60, left: 60, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(6,182,212,0.15), transparent)", pointerEvents: "none" }} />
-        <div style={{ position: "relative", padding: "36px 40px" }}>
+      <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", background: "linear-gradient(135deg, #f0f9ff 0%, #f5f3ff 60%, #fdf2f8 100%)", border: "1px solid #e2e8f0" }}>
+        <div style={{ position: "absolute", top: -60, right: -60, width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(99,102,241,0.08), transparent)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: -40, left: 40, width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(6,182,212,0.07), transparent)", pointerEvents: "none" }} />
+        <div style={{ position: "relative", padding: "32px 36px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 24 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#818cf8", letterSpacing: "0.12em", textTransform: "uppercase" }}>Hakase AI</span>
-                <span style={{ width: 1, height: 12, background: "rgba(99,102,241,0.4)" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#6366f1", letterSpacing: "0.12em", textTransform: "uppercase" }}>Hakase AI</span>
+                <span style={{ width: 1, height: 12, background: "#c7d2fe" }} />
                 <span style={{ fontSize: 11, color: "#64748b" }}>Clinical Trial Intelligence Platform</span>
               </div>
-              <h1 style={{ fontSize: 30, fontWeight: 900, color: "#fff", marginBottom: 10, letterSpacing: "-0.02em" }}>
+              <h1 style={{ fontSize: 28, fontWeight: 900, color: "#0f172a", marginBottom: 8, letterSpacing: "-0.02em" }}>
                 Hakase Clinical Hub
               </h1>
-              <p style={{ fontSize: 14, color: "#94a3b8", maxWidth: 540, lineHeight: 1.7, marginBottom: 24 }}>
+              <p style={{ fontSize: 13.5, color: "#475569", maxWidth: 520, lineHeight: 1.7, marginBottom: 22 }}>
                 A comprehensive, data-backed platform for accelerating clinical trials — combining real-time intelligence
                 from ClinicalTrials.gov, FDA FAERS, PubMed, and OpenFDA.
               </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {[
-                  { label: "500K+ Trials", sub: "ClinicalTrials.gov", color: "#3b82f6" },
-                  { label: "20M+ AE Reports", sub: "FDA FAERS", color: "#ef4444" },
-                  { label: "36M+ Articles", sub: "PubMed", color: "#22c55e" },
-                  { label: "140K+ Drug Labels", sub: "OpenFDA", color: "#fb923c" },
+                  { label: "500K+ Trials", sub: "ClinicalTrials.gov", color: "#3b82f6", bg: "#eff6ff", border: "#bfdbfe" },
+                  { label: "20M+ AE Reports", sub: "FDA FAERS", color: "#ef4444", bg: "#fef2f2", border: "#fecaca" },
+                  { label: "36M+ Articles", sub: "PubMed", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+                  { label: "140K+ Drug Labels", sub: "OpenFDA", color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
                 ].map(item => (
-                  <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: item.color }} />
+                  <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 10, background: item.bg, border: `1px solid ${item.border}` }}>
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: item.color }} />
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: "#fff" }}>{item.label}</div>
-                      <div style={{ fontSize: 9, color: "#64748b" }}>{item.sub}</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: item.color }}>{item.label}</div>
+                      <div style={{ fontSize: 9, color: "#94a3b8" }}>{item.sub}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
             <motion.button
-              whileHover={{ scale: 1.04, boxShadow: "0 0 30px rgba(99,102,241,0.4)" }}
+              whileHover={{ scale: 1.04, boxShadow: "0 6px 24px rgba(99,102,241,0.25)" }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate("trialhub")}
-              style={{ padding: "12px 24px", borderRadius: 12, background: "linear-gradient(135deg,#6366f1,#3b82f6)", color: "#fff", fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              style={{ padding: "12px 22px", borderRadius: 12, background: "linear-gradient(135deg,#6366f1,#3b82f6)", color: "#fff", fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 8, flexShrink: 0, boxShadow: "0 4px 14px rgba(99,102,241,0.2)" }}>
               <Zap className="h-4 w-4" />
               Run Simulation
             </motion.button>
