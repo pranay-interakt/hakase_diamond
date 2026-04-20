@@ -123,17 +123,14 @@ export default function Dashboard() {
         className={!mobileOpen ? "lg:relative lg:translate-x-0 -translate-x-full" : ""}
       >
         {/* Logo */}
-        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#6366f1,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: "#fff", flexShrink: 0 }}>H</div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>hakase<span style={{ color: "#6366f1" }}>AI</span></div>
-              <div style={{ fontSize: 9, fontWeight: 600, color: "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>Clinical Trial Hub</div>
-            </div>
-            <button onClick={() => setMobileOpen(false)} className="lg:hidden ml-auto" style={{ color: "#475569", background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+        <div style={{ padding: "18px 16px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <img src="/hakase-logo-transparent.png" alt="Hakase AI" style={{ height: 28, width: "auto", objectFit: "contain" }} />
+            <button onClick={() => setMobileOpen(false)} className="lg:hidden" style={{ color: "#475569", background: "none", border: "none", cursor: "pointer", padding: 4 }}>
               <X className="h-4 w-4" />
             </button>
           </div>
+          <div style={{ fontSize: 9, fontWeight: 600, color: "#334155", letterSpacing: "0.14em", textTransform: "uppercase", marginTop: 6 }}>Clinical Trial Hub</div>
         </div>
 
         {/* Nav */}
