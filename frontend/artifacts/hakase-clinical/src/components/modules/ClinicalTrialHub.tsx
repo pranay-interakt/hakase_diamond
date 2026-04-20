@@ -42,9 +42,9 @@ const formatN = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(
 
 const KPI = ({ label, value, unit, color, sub }: { label: string; value: any; unit?: string; color: string; sub?: string }) => (
   <div style={{ borderRadius: 14, padding: "16px 18px", background: "#fff", border: `1px solid ${rgba(color, 0.2)}`, boxShadow: `0 1px 4px ${rgba(color, 0.06)}` }}>
-    <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "#94a3b8", marginBottom: 6 }}>{label}</div>
-    <div style={{ fontSize: 24, fontWeight: 900, color, lineHeight: 1 }}>{value ?? "—"}{unit && <span style={{ fontSize: 12, fontWeight: 500, marginLeft: 2, opacity: 0.7 }}>{unit}</span>}</div>
-    {sub && <div style={{ fontSize: 10, color: "#64748b", marginTop: 4 }}>{sub}</div>}
+    <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 6 }}>{label}</div>
+    <div style={{ fontSize: 24, fontWeight: 900, color, lineHeight: 1 }}>{value ?? "—"}{unit && <span style={{ fontSize: 13, fontWeight: 500, marginLeft: 3, opacity: 0.75 }}>{unit}</span>}</div>
+    {sub && <div style={{ fontSize: 11, color: "#64748b", marginTop: 5 }}>{sub}</div>}
   </div>
 );
 
@@ -64,7 +64,7 @@ const BarRow = ({ label, value, max, color }: { label: string; value: number; ma
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
     <div style={{ marginBottom: 8 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748b", marginBottom: 4 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "#64748b", marginBottom: 4 }}>
         <span>{label}</span><span style={{ fontWeight: 700, color }}>{value.toLocaleString()}</span>
       </div>
       <div style={{ height: 5, borderRadius: 999, background: "#f1f5f9", overflow: "hidden" }}>
@@ -85,7 +85,7 @@ const PRRBadge = ({ signal }: { signal: any }) => {
       <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: "#0f172a" }}>{signal.reaction}</div>
-        <div style={{ fontSize: 10, color: "#94a3b8" }}>PRR {signal.prr} · ROR {signal.ror} · χ² {signal.chiSquared} · N={signal.drugReports}</div>
+        <div style={{ fontSize: 11.5, color: "#94a3b8" }}>PRR {signal.prr} · ROR {signal.ror} · χ² {signal.chiSquared} · N={signal.drugReports}</div>
       </div>
       <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 7px", borderRadius: 5, fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, background: rgba(color, 0.1), color, border: `1px solid ${rgba(color, 0.2)}` }}>{label}</span>
     </div>
@@ -142,7 +142,7 @@ function Stage1Results({ data }: { data: any }) {
               <thead>
                 <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
                   {["NCT ID", "Sponsor", "Phase", "Status", "Enrolled", ""].map(h => (
-                    <th key={h} style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#94a3b8", padding: "0 8px 8px 0", textAlign: "left" }}>{h}</th>
+                    <th key={h} style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", padding: "0 8px 8px 0", textAlign: "left" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -214,7 +214,7 @@ function Stage2Results({ data }: { data: any }) {
             <thead>
               <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
                 {["Rank", "Institution", "Country", "Score", "Startup", "Expected Pts"].map(h => (
-                  <th key={h} style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#94a3b8", textAlign: "left", padding: "0 8px 8px 0" }}>{h}</th>
+                  <th key={h} style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textAlign: "left", padding: "0 8px 8px 0" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -539,8 +539,8 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 
 // ─── Shared input styles ───────────────────────────────────────────────────────
 
-const inp: React.CSSProperties = { width: "100%", fontSize: 12, padding: "9px 12px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#0f172a", outline: "none", boxSizing: "border-box" };
-const lbl: React.CSSProperties = { display: "block", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 5 };
+const inp: React.CSSProperties = { width: "100%", fontSize: 13.5, padding: "9px 12px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", color: "#0f172a", outline: "none", boxSizing: "border-box" };
+const lbl: React.CSSProperties = { display: "block", fontSize: 11.5, fontWeight: 600, color: "#64748b", marginBottom: 5 };
 const sel: React.CSSProperties = { ...inp, appearance: "none" };
 
 // ─── Shared Input State ────────────────────────────────────────────────────────
@@ -691,8 +691,8 @@ export default function ClinicalTrialHub() {
           <FlaskConical className="h-5 w-5" style={{ color: "#0284c7" }} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.02em" }}>Clinical Trial Hub</div>
-          <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>6-stage simulation · Live APIs · ML reasoning</div>
+          <div style={{ fontSize: 17, fontWeight: 900, color: "#0f172a", letterSpacing: "-0.02em" }}>Clinical Trial Hub</div>
+          <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500 }}>6-stage simulation · Live APIs · ML reasoning</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {completedCount > 0 && (
@@ -728,7 +728,7 @@ export default function ClinicalTrialHub() {
               <span style={{ color: isActive ? s.color : isDone ? "#16a34a" : isErr ? "#ef4444" : "#cbd5e1", display: "flex" }}>
                 {isRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isDone && !isActive ? <CheckCircle2 className="h-3.5 w-3.5" /> : isErr && !isActive ? <AlertTriangle className="h-3.5 w-3.5" /> : s.icon}
               </span>
-              <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? s.color : isDone ? "#16a34a" : isErr ? "#ef4444" : "#94a3b8" }}>{s.short}</span>
+              <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? s.color : isDone ? "#16a34a" : isErr ? "#ef4444" : "#94a3b8" }}>{s.short}</span>
             </button>
           );
         })}
@@ -745,11 +745,11 @@ export default function ClinicalTrialHub() {
                 <span style={{ color: config.color, display: "flex" }}>{config.icon}</span>
               </div>
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: config.color, letterSpacing: "0.1em", textTransform: "uppercase" }}>Stage {activeStage}</div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a" }}>{config.label}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: config.color }}>Stage {activeStage}</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a" }}>{config.label}</div>
               </div>
             </div>
-            <div style={{ fontSize: 10, color: "#94a3b8", lineHeight: 1.5 }}>{config.description}</div>
+            <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.5 }}>{config.description}</div>
           </div>
 
           {/* Form */}
@@ -860,12 +860,12 @@ export default function ClinicalTrialHub() {
 
           {/* Live data sources */}
           <div style={{ padding: "10px 16px 14px", borderTop: "1px solid #f1f5f9" }}>
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#cbd5e1", marginBottom: 8 }}>Live Data Sources</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", marginBottom: 8 }}>Live data sources</div>
             {[{ n: "ClinicalTrials.gov", c: "#06b6d4" }, { n: "FDA FAERS", c: "#ef4444" }, { n: "PubMed / NCBI", c: "#10b981" }, { n: "OpenFDA Labels", c: "#f59e0b" }].map(s => (
-              <div key={s.n} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+              <div key={s.n} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                 <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 2.5, repeat: Infinity }}
-                  style={{ width: 5, height: 5, borderRadius: "50%", background: s.c, flexShrink: 0 }} />
-                <span style={{ fontSize: 10, color: "#94a3b8" }}>{s.n}</span>
+                  style={{ width: 6, height: 6, borderRadius: "50%", background: s.c, flexShrink: 0 }} />
+                <span style={{ fontSize: 11.5, color: "#94a3b8" }}>{s.n}</span>
               </div>
             ))}
           </div>
