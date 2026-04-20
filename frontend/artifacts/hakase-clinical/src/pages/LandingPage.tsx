@@ -273,7 +273,7 @@ export default function LandingPage() {
             display: "flex",
             alignItems: "center",
             gap: 36,
-            fontSize: 13.5,
+            fontSize: 15,
             color: "#3a3a3a",
           }}
         >
@@ -336,19 +336,30 @@ export default function LandingPage() {
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
-              marginBottom: 32,
+              marginBottom: 36,
               width: "fit-content",
+              padding: "7px 16px 7px 12px",
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.85)",
+              border: "1px solid rgba(0,0,0,0.07)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05)",
+              backdropFilter: "blur(8px)",
             }}
           >
-            <span style={{ fontSize: 11, color: "#777", letterSpacing: "0.1em" }}>
-              +
+            <span style={{
+              width: 18, height: 18,
+              borderRadius: "50%",
+              background: "linear-gradient(135deg, #6366f1, #06b6d4)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 9, color: "#fff", fontWeight: 700, flexShrink: 0,
+            }}>
+              ✦
             </span>
             <span
               style={{
-                fontSize: 11.5,
-                color: "#555",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
+                fontSize: 12,
+                color: "#444",
+                letterSpacing: "0.04em",
                 fontWeight: 500,
               }}
             >
