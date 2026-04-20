@@ -757,98 +757,117 @@ export default function LandingPage() {
           </div>
         </Reveal>
 
-        {/* Browser-chrome mockup */}
-        <Reveal delay={0.1} y={60}>
-          <motion.div
-            whileHover={{ y: -4 }}
-            transition={{ duration: 0.35 }}
-            style={{
-              borderRadius: 14,
-              overflow: "hidden",
-              border: "1px solid #ddd9d2",
-              boxShadow:
-                "0 32px 80px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.06)",
-              background: "#fff",
-            }}
-          >
-            {/* Window chrome bar */}
-            <div
+        {/* 3-D floating dashboard card */}
+        <Reveal delay={0.1} y={70}>
+          <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+
+            {/* Ambient glow blob behind card */}
+            <div style={{
+              position: "absolute",
+              top: "10%", left: "50%",
+              transform: "translate(-50%, 0)",
+              width: 700, height: 300,
+              borderRadius: "50%",
+              background: "radial-gradient(ellipse, rgba(99,102,241,0.12) 0%, rgba(6,182,212,0.06) 50%, transparent 80%)",
+              filter: "blur(40px)",
+              pointerEvents: "none",
+              zIndex: 0,
+            }} />
+
+            {/* Card perspective wrapper */}
+            <motion.div
+              initial={{ rotateX: 14, rotateY: -5, scale: 0.94, opacity: 0 }}
+              whileInView={{ rotateX: 12, rotateY: -4, scale: 0.96, opacity: 1 }}
+              whileHover={{ rotateX: 4, rotateY: 0, scale: 0.99, y: -8 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              viewport={{ once: true }}
               style={{
-                padding: "11px 18px",
-                background: "#f0ede8",
-                borderBottom: "1px solid #e0dcd5",
+                position: "relative",
+                zIndex: 1,
+                width: "82%",
+                transformStyle: "preserve-3d",
+                perspective: 1000,
+                transformOrigin: "center 30%",
+                borderRadius: 16,
+                cursor: "pointer",
+                /* Layered shadows for depth */
+                boxShadow: [
+                  "0 2px 4px rgba(0,0,0,0.06)",
+                  "0 8px 16px rgba(0,0,0,0.08)",
+                  "0 24px 48px rgba(0,0,0,0.12)",
+                  "0 56px 100px rgba(0,0,0,0.16)",
+                  "0 0 0 1px rgba(0,0,0,0.05)",
+                ].join(", "),
+              }}
+              onClick={() => navigate("/dashboard")}
+            >
+              {/* Window chrome bar */}
+              <div style={{
+                padding: "10px 16px",
+                background: "#1e1e2e",
+                borderRadius: "16px 16px 0 0",
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
-              }}
-            >
-              <div style={{ display: "flex", gap: 6 }}>
-                {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-                  <div
-                    key={c}
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: "50%",
-                      background: c,
-                    }}
-                  />
-                ))}
-              </div>
-              <div
-                style={{
+              }}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+                    <div key={c} style={{ width: 9, height: 9, borderRadius: "50%", background: c }} />
+                  ))}
+                </div>
+                <div style={{
                   flex: 1,
-                  background: "#e8e4de",
+                  background: "rgba(255,255,255,0.07)",
                   borderRadius: 5,
-                  padding: "4px 12px",
-                  fontSize: 11,
-                  color: "#999",
+                  padding: "3px 12px",
+                  fontSize: 10.5,
+                  color: "rgba(255,255,255,0.35)",
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
-                }}
-              >
-                <motion.div
-                  animate={{ scale: [1, 1.5, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    background: "#22c55e",
-                    flexShrink: 0,
-                  }}
-                />
-                app.hakase.ai/dashboard
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {["#bbb", "#bbb", "#bbb"].map((c, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      width: 13,
-                      height: 13,
-                      borderRadius: 3,
-                      background: c,
-                      opacity: 0.4,
-                    }}
+                }}>
+                  <motion.div
+                    animate={{ scale: [1, 1.5, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }}
                   />
-                ))}
+                  app.hakase.ai/dashboard
+                </div>
               </div>
-            </div>
 
-            {/* Screenshot */}
-            <div style={{ lineHeight: 0 }}>
-              <img
-                src="/dashboard-screenshot.jpg"
-                alt="Hakase Dashboard"
-                style={{
-                  width: "100%",
-                  display: "block",
-                }}
-              />
-            </div>
-          </motion.div>
+              {/* Screenshot */}
+              <div style={{ lineHeight: 0, borderRadius: "0 0 16px 16px", overflow: "hidden" }}>
+                <img
+                  src="/dashboard-screenshot.jpg"
+                  alt="Hakase Dashboard"
+                  style={{ width: "100%", display: "block" }}
+                />
+                {/* Subtle bottom reflection fade */}
+                <div style={{
+                  position: "absolute",
+                  bottom: 0, left: 0, right: 0,
+                  height: 80,
+                  background: "linear-gradient(to top, rgba(245,243,239,0.6), transparent)",
+                  borderRadius: "0 0 16px 16px",
+                  pointerEvents: "none",
+                }} />
+              </div>
+            </motion.div>
+
+            {/* Ground shadow / reflection plane */}
+            <div style={{
+              position: "absolute",
+              bottom: -24,
+              left: "50%",
+              transform: "translate(-50%, 0)",
+              width: "60%",
+              height: 40,
+              background: "radial-gradient(ellipse, rgba(0,0,0,0.14), transparent 70%)",
+              filter: "blur(16px)",
+              zIndex: 0,
+              pointerEvents: "none",
+            }} />
+          </div>
         </Reveal>
 
         {/* Feature chips below mockup */}
