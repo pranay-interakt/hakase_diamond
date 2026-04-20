@@ -312,22 +312,18 @@ export default function LandingPage() {
       <section
         ref={heroRef}
         style={{
-          minHeight: "100vh",
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
           position: "relative",
           overflow: "hidden",
+          background: "#faf9f7",
         }}
       >
-        {/* Left: copy */}
+        {/* Left: copy — drives section height */}
         <motion.div
           style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            padding: "120px 64px 80px 64px",
             position: "relative",
             zIndex: 2,
+            maxWidth: "52%",
+            padding: "150px 72px 100px 64px",
             y: textY,
           }}
         >
@@ -487,10 +483,14 @@ export default function LandingPage() {
           </motion.div>
         </motion.div>
 
-        {/* Right: hero image */}
+        {/* Right: hero image — absolutely fills the right half */}
         <div
           style={{
-            position: "relative",
+            position: "absolute",
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: "54%",
             overflow: "hidden",
             background: "#f0ede8",
           }}
