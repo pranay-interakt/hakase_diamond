@@ -838,28 +838,13 @@ export default function LandingPage() {
             </div>
 
             {/* Screenshot */}
-            <div style={{ position: "relative", lineHeight: 0 }}>
+            <div style={{ lineHeight: 0 }}>
               <img
-                src="/dashboard-mockup.png"
+                src="/dashboard-real.png"
                 alt="Hakase Dashboard"
                 style={{
                   width: "100%",
                   display: "block",
-                  maxHeight: 560,
-                  objectFit: "cover",
-                  objectPosition: "top center",
-                }}
-              />
-              {/* Bottom fade */}
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 100,
-                  background:
-                    "linear-gradient(to top, rgba(245,243,239,0.95), transparent)",
                 }}
               />
             </div>
