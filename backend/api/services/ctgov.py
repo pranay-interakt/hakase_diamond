@@ -1,6 +1,7 @@
+from __future__ import annotations
 import httpx
 import asyncio
-from typing import Any
+from typing import Any, Optional
 
 BASE = "https://clinicaltrials.gov/api/v2"
 HEADERS = {"Accept": "application/json"}
@@ -9,11 +10,11 @@ async def search_studies(
     query: str = "",
     condition: str = "",
     intervention: str = "",
-    phase: list[str] | None = None,
-    status: list[str] | None = None,
+    phase:Optional[ list[str] ] = None,
+    status:Optional[ list[str] ] = None,
     page_size: int = 20,
-    page_token: str | None = None,
-    fields: list[str] | None = None,
+    page_token:Optional[ str ] = None,
+    fields:Optional[ list[str] ] = None,
 ) -> dict:
     params: dict[str, Any] = {"pageSize": page_size, "format": "json"}
     terms = []

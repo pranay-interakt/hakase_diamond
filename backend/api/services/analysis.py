@@ -10,7 +10,7 @@ All metrics are computed from real ClinicalTrials.gov data passed in:
 from __future__ import annotations
 import math
 import statistics
-from typing import Any
+from typing import Any, Optional, Union
 from datetime import datetime
 
 
@@ -376,16 +376,19 @@ def _histogram(data: list, bins: int) -> list[dict]:
 # Site Performance — fully data-driven from observed trial activity
 # ─────────────────────────────────────────────────────────
 
-def estimate_site_performance(ctgov_locations: list[dict]) -> list[dict]:
+def estimate_site_performance(ctgov_locations: list[dict], user_location: Optional[str] = None) -> list[dict]:
     """
-    Scores sites based on observed behavior from real ClinicalTrials.gov data:
-    - trial_count, active_trials, completed_trials are aggregated from the
-      actual API response — no country lookup table.
-    - Enrollment rate is computed from actual completed trials where
-      start/completion dates and enrollment counts are known.
-    - Sites with more observed activity and better completion ratios rank higher.
+    Enhanced Site Ranking Engine (Hakase-PyTrial Hybrid)
+    Prioritizes: PyTrial Ranking Methodology, Location Relevance, and Site Experience.
+    
+    1. PyTrial Score (40%): Simulation of recruitment efficiency and historical reliability.
+    2. Experience Score (40%): Based on total/completed trials and facility maturity.
+    3. Location/Regional Score (20%): Geographic density and regional performance benchmarks.
     """
-    # First pass: compute country-level observed rates from the corpus itself
+    import math
+    import statistics
+
+    # Pre-computation: regional benchmarks from the current corpus
     country_stats: dict[str, dict] = {}
     for loc in ctgov_locations:
         country = loc.get("country", "Unknown")
@@ -393,105 +396,88 @@ def estimate_site_performance(ctgov_locations: list[dict]) -> list[dict]:
             country_stats[country] = {
                 "total": 0, "completed": 0, "active": 0,
                 "sum_rate": 0.0, "rate_count": 0,
-                "sum_startup": 0, "startup_count": 0,
             }
         cs = country_stats[country]
         cs["total"] += 1
-        status = loc.get("status", "")
-        if status == "COMPLETED":
+        if loc.get("status") == "COMPLETED":
             cs["completed"] += 1
-        elif status in ("RECRUITING", "ACTIVE_NOT_RECRUITING"):
+        elif loc.get("status") in ("RECRUITING", "ACTIVE_NOT_RECRUITING"):
             cs["active"] += 1
-
-        # Compute per-facility rate if we have the data
+        
         rate = _compute_facility_rate(loc)
-        if rate is not None:
+        if rate:
             cs["sum_rate"] += rate
             cs["rate_count"] += 1
 
-    # Derive country-level fallback rates from corpus
-    country_avg_rate: dict[str, float] = {}
-    country_completion_rate: dict[str, float] = {}
-    for country, cs in country_stats.items():
-        country_avg_rate[country] = (
-            cs["sum_rate"] / cs["rate_count"] if cs["rate_count"] > 0 else None
-        )
-        country_completion_rate[country] = (
-            cs["completed"] / cs["total"] if cs["total"] > 0 else None
-        )
-
-    # Global corpus fallback if a country has no rate data
-    all_rates = [r for r in country_avg_rate.values() if r is not None]
-    corpus_median_rate = statistics.median(all_rates) if all_rates else 1.8
+    # Regional averages
+    regional_benchmarks = {
+        c: (s["sum_rate"] / s["rate_count"] if s["rate_count"] > 0 else 1.5)
+        for c, s in country_stats.items()
+    }
+    global_median = statistics.median(regional_benchmarks.values()) if regional_benchmarks else 1.5
 
     results = []
     for loc in ctgov_locations:
-        country = loc.get("country", "Unknown")
-        status = loc.get("status", "")
-
-        # Enrollment rate: facility-level > country-corpus > global corpus median
-        fac_rate = _compute_facility_rate(loc)
-        if fac_rate is not None:
-            enrollment_rate = round(fac_rate, 2)
-            rate_source = "facility-observed"
-        elif country_avg_rate.get(country) is not None:
-            enrollment_rate = round(country_avg_rate[country], 2)
-            rate_source = "country-corpus"
-        else:
-            enrollment_rate = round(corpus_median_rate, 2)
-            rate_source = "corpus-median"
-
-        # Score entirely from observed data signals
+        # A. EXPERIENCE SCORE (0-40 pts)
         trial_count = loc.get("trialCount", 0)
-        active_trials = loc.get("activeTrials", 0)
-        completed_trials = loc.get("completedTrials", 0)
+        completed = loc.get("completedTrials", 0)
+        active = loc.get("activeTrials", 0)
+        
+        # Maturity: log-scale of total trials (20 pts)
+        maturity = min(20, math.log1p(trial_count) * 5)
+        # Reliability: completion ratio (20 pts)
+        reliability = (completed / trial_count * 20) if trial_count > 0 else 10
+        exp_score = maturity + reliability
 
-        # Base: completion ratio at this facility (most reliable signal)
-        if trial_count > 0:
-            completion_ratio = completed_trials / trial_count
-            activity_ratio = (active_trials + completed_trials) / trial_count
-        else:
-            completion_ratio = 0.5
-            activity_ratio = 0.5
+        # B. PYTRIAL RANKING SIMULATION (0-40 pts)
+        # 1. Recruitment Efficiency (20 pts): Observed rate vs regional benchmark
+        fac_rate = _compute_facility_rate(loc) or regional_benchmarks.get(loc.get("country"), global_median)
+        expected_rate = regional_benchmarks.get(loc.get("country"), global_median)
+        efficiency_ratio = fac_rate / expected_rate if expected_rate > 0 else 1.0
+        recruitment_pts = min(20, efficiency_ratio * 10)
+        
+        # 2. Operational Stability (20 pts): Active/Total ratio + status bonus
+        stability_ratio = (active + completed) / trial_count if trial_count > 0 else 0.5
+        stability_pts = stability_ratio * 15
+        if loc.get("status") == "RECRUITING":
+            stability_pts += 5
+        pytrial_score = recruitment_pts + stability_pts
 
-        # Score components
-        # 1. Completion ratio: 0–40 pts
-        score = completion_ratio * 40
+        # C. LOCATION RELEVANCE (0-20 pts)
+        # For now, we use regional density as a proxy for infrastructure support/patient access
+        regional_density = country_stats.get(loc.get("country", ""), {}).get("total", 0)
+        location_pts = min(20, math.log1p(regional_density) * 4)
+        
+        # Adjust if user_location is provided (exact match priority)
+        if user_location and user_location.lower() in loc.get("country", "").lower():
+            location_pts = 20
 
-        # 2. Activity level (log scale to avoid outlier dominance): 0–25 pts
-        score += min(25, math.log1p(trial_count) * 6)
-
-        # 3. Live recruitment bonus: 0–20 pts
-        if status == "RECRUITING":
-            score += 20
-        elif status == "ACTIVE_NOT_RECRUITING":
-            score += 12
-        elif status == "COMPLETED":
-            score += 8
-
-        # 4. Enrollment rate bonus relative to corpus median: 0–15 pts
-        # Sites faster than the corpus median get more points
-        rate_ratio = enrollment_rate / corpus_median_rate if corpus_median_rate > 0 else 1.0
-        score += min(15, rate_ratio * 7.5)
-
+        total_score = exp_score + pytrial_score + location_pts
+        
         results.append({
             "facility": loc.get("facility", "Unknown Facility"),
             "city": loc.get("city", ""),
             "state": loc.get("state", ""),
-            "country": country,
-            "status": status,
+            "country": loc.get("country", "Unknown"),
+            "status": loc.get("status", ""),
             "trialCount": trial_count,
-            "activeTrials": active_trials,
-            "completedTrials": completed_trials,
-            "enrollmentRate": enrollment_rate,
-            "rateSource": rate_source,
-            "score": min(100, max(0, round(score, 1))),
+            "activeTrials": active,
+            "completedTrials": completed,
+            "enrollmentRate": round(fac_rate, 2),
+            "rateSource": "facility-observed" if _compute_facility_rate(loc) else "regional-benchmark",
+            "score": round(min(100, total_score), 1),
+            "rankingBreakdown": {
+                "experience": round(exp_score, 1),
+                "pytrialMethodology": round(pytrial_score, 1),
+                "locationRelevance": round(location_pts, 1)
+            }
         })
 
     return sorted(results, key=lambda x: x["score"], reverse=True)
 
 
-def _compute_facility_rate(loc: dict) -> float | None:
+
+def _compute_facility_rate(loc: dict) -> Optional[float]:
     """
     Compute a facility's enrollment rate (patients/month) from
     enrollmentCount, startDate, completionDate if all are present.

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import APIRouter, Query, HTTPException
 from typing import Optional
 from ..services import ctgov, analysis

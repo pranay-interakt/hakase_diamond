@@ -20,7 +20,7 @@ import asyncio
 import logging
 import urllib.parse
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, Union
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def _ts() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-async def _get(client: httpx.AsyncClient, url: str, params: dict = None) -> dict | list | None:
+async def _get(client: httpx.AsyncClient, url: str, params: dict = None) -> Union[dict, Optional[list]]:
     try:
         resp = await client.get(url, params=params, timeout=_TIMEOUT)
         if resp.status_code == 200:

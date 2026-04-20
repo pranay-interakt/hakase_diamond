@@ -103,7 +103,10 @@ export default function SiteIntelligence() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-900">Top Recommended Sites</h3>
-              <Badge variant="outline" className="text-xs">Ranked by Hakase Score</Badge>
+              <div className="flex gap-2">
+                <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none">PyTrial Optimized</Badge>
+                <Badge variant="outline" className="text-xs">Ranked by Hakase Score</Badge>
+              </div>
             </div>
             {sites.slice(0, 20).map((site: any, i: number) => (
               <div key={i} className="bg-white rounded-xl border border-slate-200 p-4">
@@ -129,8 +132,20 @@ export default function SiteIntelligence() {
                     </div>
                   </div>
                   <div className="flex-shrink-0 text-right text-xs text-slate-400">
-                    <p>{site.activeTrials} active</p>
-                    <p>{site.completedTrials} completed</p>
+                    <div className="bg-slate-50 border border-slate-100 rounded-lg p-2 space-y-1 min-w-[120px]">
+                      <div className="flex justify-between gap-2">
+                        <span>Experience:</span>
+                        <span className="font-medium text-slate-700">{site.rankingBreakdown?.experience || 0}</span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span>PyTrial Rank:</span>
+                        <span className="font-medium text-slate-700">{site.rankingBreakdown?.pytrialMethodology || 0}</span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span>Location:</span>
+                        <span className="font-medium text-slate-700">{site.rankingBreakdown?.locationRelevance || 0}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -138,8 +153,13 @@ export default function SiteIntelligence() {
           </div>
 
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-500">
-            <p className="font-medium text-slate-700 mb-1">Scoring Methodology</p>
-            <p>Sites scored on enrollment rate capacity (regional averages), regulatory startup timeline, trial experience (prior study count), and current activity status — all derived from historical ClinicalTrials.gov data.</p>
+            <p className="font-medium text-slate-700 mb-1">Scoring Methodology: Hakase-PyTrial Hybrid Engine</p>
+            <p>
+              Sites are ranked using a multi-factor methodology:
+              <br/>• <b>Experience (40%)</b>: Historical trial count, completion ratios, and facility maturity.
+              <br/>• <b>PyTrial Methodology (40%)</b>: AI-driven recruitment efficiency simulation and operational stability metrics.
+              <br/>• <b>Location Relevance (20%)</b>: Regional infrastructure density and geographic proximity priority.
+            </p>
           </div>
         </div>
       )}

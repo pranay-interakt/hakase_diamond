@@ -247,11 +247,12 @@
 .lp-trust > span { font-size: 0.7rem; color: var(--clr-muted-light); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; display: block; margin-bottom: 0.7rem; }
 .lp-trust-logos { display: flex; gap: 2.2rem; justify-content: center; flex-wrap: wrap; }
 .lp-trust-logo {
-  font-size: 0.78rem; font-weight: 700; color: var(--clr-border);
+  font-size: 0.78rem; font-weight: 700; color: var(--clr-text);
   letter-spacing: 0.07em; text-transform: uppercase;
-  transition: color 0.25s;
+  transition: opacity 0.25s;
+  opacity: 0.35;
 }
-.lp-trust-logo:hover { color: var(--clr-muted); }
+.lp-trust-logo:hover { opacity: 0.7; }
 
 /* ════════════════════════════════════════════════════════════
    DASHBOARD MOCKUP (HTML — not image)

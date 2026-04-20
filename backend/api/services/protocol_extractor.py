@@ -14,7 +14,7 @@ No LLM dependency for core extraction — pure data-driven, fully deterministic.
 from __future__ import annotations
 import re
 import statistics
-from typing import Optional
+from typing import Optional, Union
 from .reasoning_retriever import ReasoningRetriever
 
 
@@ -182,7 +182,7 @@ def _extract_title(sections: dict, full: str) -> tuple[str, float, str]:
                 return first_line[:200], 0.9, first_line
 
     m = re.search(
-        r'(?:protocol\s+title|study\s+title|full\s+title)\s*[:\-]\s*([^\n]{20,250})',
+        r'(?:protocol|study)\s+(?:title|full)\s+title\s*[:\-]\s*([^\n]{20,250})',
         full, re.IGNORECASE
     )
     if m:
@@ -201,8 +201,8 @@ def _extract_phase(sections: dict, full_lower: str) -> tuple[list[str], float, s
 
     patterns = {
         "EARLY_PHASE1": r"\bearly\s+phase\s+1\b|\bphase\s+0\b",
-        "PHASE1": r"\bphase\s+1\b|\bphase\s+i\b(?!\w|i)",
-        "PHASE2": r"\bphase\s+2\b|\bphase\s+ii\b(?!\w|i)",
+        "PHASE1": r"\bphase\s+1\b|\bphase\s+i\b(?![wi])",
+        "PHASE2": r"\bphase\s+2\b|\bphase\s+ii\b(?![wi])",
         "PHASE3": r"\bphase\s+3\b|\bphase\s+iii\b(?!\w)",
         "PHASE4": r"\bphase\s+4\b|\bphase\s+iv\b(?!\w)",
     }
@@ -235,7 +235,7 @@ def _extract_endpoints(sections: dict, kind: str) -> tuple[list[str], float, str
             return items, 0.85, section_text[:200]
 
     full = sections.get("__full__", "")
-    pattern = rf"{kind}\s+(?:endpoint|outcome|objective)[s]?\s*[:\-]?\s*([^\n]{{20,300}})"
+    pattern = rf"{kind}\s+(?:endpoint|outcome|objective)s?\s*[:\-]?\s*([^\n]{{20,300}})"
     matches = re.findall(pattern, full, re.IGNORECASE)
     if matches:
         items = [m.strip()[:200] for m in matches[:8]]
@@ -278,8 +278,8 @@ def _extract_enrollment(sections: dict, full_lower: str) -> tuple[Optional[int],
     search_text = ss_text if ss_text else full_lower
 
     patterns = [
-        r'(?:enroll|randomize|randomise|recruit)\s+(?:approximately\s+)?(\d{2,5})\s*(?:patients|subjects|participants|volunteers)',
-        r'(?:target|planned|total)\s+(?:sample\s+size|enrollment|enrolment)\s+(?:of\s+)?(?:approximately\s+)?(\d{2,5})',
+        r'(?:enroll|randomiz|randomis|recruit)\s+(?:approximately\s+)?(\d{2,5})\s*(?:patients|subjects|participants|volunteers)',
+        r'(?:target|planned|total)\s+(?:sample\s+(?:size|enrollment|enrolment))\s+(?:of\s+)?(?:approximately\s+)?(\d{2,5})',
         r'(?:n\s*=\s*|sample\s+size\s+of\s+)(\d{2,5})',
         r'(\d{2,5})\s*(?:patients|subjects|participants)\s+will\s+be\s+(?:enrolled|randomized)',
     ]
@@ -308,7 +308,7 @@ def _extract_eligibility(sections: dict, full: str) -> tuple[str, float, str]:
         return clean[:2000], 0.9, elig_text[:100]
 
     m = re.search(
-        r'(?:inclusion|eligibility)\s+criteria\s*[:\-]?\s*((?:.|\n){80,3000}?)(?=exclusion\s+criteria|study\s+design|primary\s+endpoint|$)',
+        r'(?:inclusion|eligibility)\s+criteria\s*[:\-]?\s*((?:.|\n){80,3000}?)(?=exclusion\s+(?:criteria|study)\s+(?:design|primary)\s+endpoint|$)',
         full, re.IGNORECASE
     )
     if m:
@@ -328,7 +328,7 @@ def _extract_sponsor(sections: dict, full: str) -> tuple[str, float, str]:
     patterns = [
         r'(?:^|\n)(?:sponsor|applicant|company)\s*[:\-]\s*([A-Za-z][^\n,;]{5,100})',
         r'(?:sponsor|applicant|company)\s+(?:is|name|:)\s*([A-Za-z][^\n,;]{5,100})',
-        r'(?:submitted\s+by|prepared\s+by|developed\s+by)\s+([A-Za-z][^\n,;]{5,100})',
+        r'(?:submitted\s+(?:by|prepared)\s+(?:by|developed)\s+by)\s+([A-Za-z][^\n,;]{5,100})',
     ]
     for pat in patterns:
         m = re.search(pat, full, re.IGNORECASE)
@@ -344,7 +344,7 @@ def _extract_masking(sections: dict, full_lower: str) -> tuple[str, float, str]:
     design_text = (sections.get("design", "") + " " + sections.get("__full__", "")).lower()
     search = design_text if sections.get("design") else full_lower
 
-    if re.search(r'(?:double[- ]blind|double[- ]masked|dbl[- ]blind|quadruple[- ]blind)', search):
+    if re.search(r'(?:double[- ]blind|double[- ]masked|dbl-blind|quadruple[- ]blind)', search):
         return "DOUBLE", 0.95, "double-blind"
     if re.search(r'(?:triple[- ]blind|triple[- ]masked)', search):
         return "TRIPLE", 0.9, "triple-blind"
@@ -396,7 +396,7 @@ def _extract_interventions(sections: dict, full: str) -> tuple[list[dict], float
     intr_text = sections.get("interventions", "")
 
     patterns = [
-        r'(?:investigational\s+(?:product|drug|medicinal\s+product)|study\s+drug|study\s+treatment|IMP)\s*[:\-]?\s*([A-Za-z][^\n,;]{3,80})',
+        r'(?:investigational\s+(?:product|drug|medicinal\s+product)|study\s+(?:drug|study)\s+(?:treatment|IMP))\s*[:\-]?\s*([A-Za-z][^\n,;]{3,80})',
         r'(?:treatment|arm|cohort)\s*[:\-]\s*([A-Za-z][^\n,;]{3,80})',
         r'(?:administered|given|dosed)\s+(?:with\s+)?([A-Za-z][^\n,;]{3,60})',
     ]

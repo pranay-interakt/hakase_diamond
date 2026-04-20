@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Search, Shield, MapPin,
   CheckCircle2, TrendingUp, BookOpen, FileText, ChevronRight,
   Globe, Sparkles, Menu, X, Users, FlaskConical, Activity,
-  BookOpen as BookOpenIcon
+  BookOpen as BookOpenIcon, TestTubeDiagonal
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import TrialExplorer from "@/components/modules/TrialExplorer";
@@ -16,11 +16,12 @@ import ProtocolStudio from "@/components/modules/ProtocolStudio";
 import KOLFinder from "@/components/modules/KOLFinder";
 import Bridge from "@/components/modules/Bridge";
 import RegulatoryAI from "@/components/modules/RegulatoryAI";
+import ClinicalTrialHub from "@/components/modules/ClinicalTrialHub";
 
 type Module =
   | "overview" | "explorer" | "safety" | "sites"
   | "compliance" | "simulation" | "evidence"
-  | "protocol" | "kols" | "bridge" | "regulatory";
+  | "protocol" | "kols" | "bridge" | "regulatory" | "trialhub";
 
 const navGroups: {
   label?: string;
@@ -29,31 +30,32 @@ const navGroups: {
   {
     items: [
       { id: "overview", label: "Overview", icon: <LayoutDashboard className="h-4 w-4" /> },
+      { id: "trialhub",   label: "Clinical Trial Hub",  icon: <TestTubeDiagonal className="h-4 w-4" />, badge: "SIM" },
+    ],
+  },
+  {
+    label: "Protocol & Discovery",
+    items: [
+      { id: "protocol",   label: "Protocol Studio",     icon: <FileText className="h-4 w-4" />, badge: "AI" },
+      { id: "explorer",   label: "Trial Explorer",      icon: <Search className="h-4 w-4" /> },
+      { id: "kols",       label: "KOL Identification",  icon: <Users className="h-4 w-4" /> },
     ],
   },
   {
     label: "Intelligence",
     items: [
-      { id: "explorer",   label: "Trial Explorer",      icon: <Search className="h-4 w-4" /> },
       { id: "safety",     label: "Safety Intelligence", icon: <Shield className="h-4 w-4" /> },
-      { id: "sites",      label: "Site Intelligence",   icon: <MapPin className="h-4 w-4" /> },
       { id: "evidence",   label: "Evidence Library",    icon: <BookOpen className="h-4 w-4" /> },
-      { id: "kols",       label: "KOL Finder",          icon: <Users className="h-4 w-4" /> },
+      { id: "sites",      label: "Site Recommendation",  icon: <MapPin className="h-4 w-4" /> },
     ],
   },
   {
     label: "Operations",
     items: [
-      { id: "protocol",   label: "Protocol Studio",     icon: <FileText className="h-4 w-4" />, badge: "AI" },
-      { id: "simulation", label: "Enrollment Sim",      icon: <TrendingUp className="h-4 w-4" /> },
-      { id: "compliance", label: "Compliance",          icon: <CheckCircle2 className="h-4 w-4" /> },
-      { id: "regulatory", label: "Regulatory AI",       icon: <FlaskConical className="h-4 w-4" /> },
-    ],
-  },
-  {
-    label: "Ecosystem",
-    items: [
+      { id: "simulation", label: "Enrollment Simulation", icon: <TrendingUp className="h-4 w-4" /> },
+      { id: "compliance", label: "Regulatory Compliance", icon: <CheckCircle2 className="h-4 w-4" /> },
       { id: "bridge",     label: "Hakase Bridge",       icon: <Globe className="h-4 w-4" />, badge: "NEW" },
+      { id: "regulatory", label: "Regulatory AI",       icon: <FlaskConical className="h-4 w-4" /> },
     ],
   },
 ];
@@ -61,14 +63,15 @@ const navGroups: {
 const navItems = navGroups.flatMap(g => g.items);
 
 const features: { icon: React.ReactNode; title: string; desc: string; module: Module }[] = [
-  { icon: <Search className="h-5 w-5 text-blue-500" />, title: "Trial Explorer", desc: "Search 500K+ trials from ClinicalTrials.gov in real time by condition, drug, phase, or status.", module: "explorer" },
-  { icon: <Shield className="h-5 w-5 text-rose-500" />, title: "Safety Intelligence", desc: "Access 20M+ FDA FAERS adverse events. Visualize reaction frequencies, serious outcomes, and recall history.", module: "safety" },
-  { icon: <MapPin className="h-5 w-5 text-emerald-500" />, title: "Site Intelligence", desc: "Identify top investigative sites globally ranked by enrollment rate, startup time, and prior trial experience.", module: "sites" },
-  { icon: <CheckCircle2 className="h-5 w-5 text-amber-500" />, title: "Regulatory Compliance", desc: "Validate protocols against ICH E6/E8/E9, FDA 21 CFR, CONSORT, and WHO ICTRP with actionable remediation.", module: "compliance" },
-  { icon: <TrendingUp className="h-5 w-5 text-cyan-500" />, title: "Enrollment Simulation", desc: "1,000-iteration Monte Carlo. Rates auto-derived from real completed trials, producing P10/P50/P90 timelines.", module: "simulation" },
-  { icon: <BookOpen className="h-5 w-5 text-violet-500" />, title: "Evidence Library", desc: "Mine 36M+ PubMed articles with automatic evidence classification — meta-analyses and Phase 3 RCTs ranked first.", module: "evidence" },
-  { icon: <Users className="h-5 w-5 text-indigo-500" />, title: "KOL Finder", desc: "Identify Key Opinion Leaders from PubMed authorship data — ranked by publications and clinical trial involvement.", module: "kols" },
+  { icon: <TestTubeDiagonal className="h-5 w-5 text-pink-600" />, title: "Clinical Trial Hub", desc: "Simulate the entire clinical trial lifecycle in 7 stages — from discovery to outcomes — using live API data, ML success prediction, Monte Carlo enrollment, and cost optimization.", module: "trialhub" },
   { icon: <FileText className="h-5 w-5 text-pink-500" />, title: "Protocol Studio", desc: "Upload protocol PDFs. Run parameter simulations, track amendments, get AI suggestions, and discover sites & KOLs.", module: "protocol" },
+  { icon: <Search className="h-5 w-5 text-blue-500" />, title: "Trial Explorer", desc: "Search 500K+ trials from ClinicalTrials.gov in real time by condition, drug, phase, or status.", module: "explorer" },
+  { icon: <Users className="h-5 w-5 text-indigo-500" />, title: "KOL Identification", desc: "Identify Key Opinion Leaders from PubMed authorship data — ranked by publications and clinical trial involvement.", module: "kols" },
+  { icon: <Shield className="h-5 w-5 text-rose-500" />, title: "Safety Intelligence", desc: "Access 20M+ FDA FAERS adverse events. Visualize reaction frequencies, serious outcomes, and recall history.", module: "safety" },
+  { icon: <BookOpen className="h-5 w-5 text-violet-500" />, title: "Evidence Library", desc: "Mine 36M+ PubMed articles with automatic evidence classification — meta-analyses and Phase 3 RCTs ranked first.", module: "evidence" },
+  { icon: <MapPin className="h-5 w-5 text-emerald-500" />, title: "Site Recommendation", desc: "Identify top investigative sites globally ranked by enrollment rate, startup time, and prior trial experience.", module: "sites" },
+  { icon: <TrendingUp className="h-5 w-5 text-cyan-500" />, title: "Enrollment Simulation", desc: "1,000-iteration Monte Carlo. Rates auto-derived from real completed trials, producing P10/P50/P90 timelines.", module: "simulation" },
+  { icon: <CheckCircle2 className="h-5 w-5 text-amber-500" />, title: "Regulatory Compliance", desc: "Validate protocols against ICH E6/E8/E9, FDA 21 CFR, CONSORT, and WHO ICTRP with actionable remediation.", module: "compliance" },
   { icon: <Globe className="h-5 w-5 text-sky-500" />, title: "Hakase Bridge", desc: "Import trial configurations from Hakase.bio Layer 4 for cross-platform analysis and clinical operational mapping.", module: "bridge" },
   { icon: <FlaskConical className="h-5 w-5 text-orange-500" />, title: "Regulatory AI", desc: "Generate FDA/EMA roadmaps, pre-IND readiness checklists, and receive alerts on the latest regulatory guidance.", module: "regulatory" },
 ];
@@ -89,9 +92,11 @@ export default function Dashboard() {
       case "protocol":    return <ProtocolStudio />;
       case "bridge":      return <Bridge />;
       case "regulatory":  return <RegulatoryAI />;
+      case "trialhub":    return <ClinicalTrialHub />;
       default:            return <Overview onNavigate={m => setActive(m)} />;
     }
   };
+
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "#f8fafc" }}>
@@ -168,7 +173,7 @@ export default function Dashboard() {
                       </span>
                       {item.badge && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide"
-                          style={{ background: item.badge === "NEW" ? "#0ea5e9" : "linear-gradient(135deg,#6366f1,#3b82f6)", color: "#fff" }}>
+                          style={{ background: item.badge === "NEW" ? "#0ea5e9" : item.badge === "SIM" ? "linear-gradient(135deg,#ec4899,#8b5cf6)" : "linear-gradient(135deg,#6366f1,#3b82f6)", color: "#fff" }}>
                           {item.badge}
                         </span>
                       )}
@@ -352,7 +357,7 @@ function Overview({ onNavigate }: { onNavigate: (m: Module) => void }) {
             <ol className="text-[12px] text-indigo-700 space-y-1.5 list-decimal list-inside leading-relaxed">
               <li>Use <strong>Trial Explorer</strong> to search for trials relevant to your indication</li>
               <li>Upload your protocol PDF to <strong>Protocol Studio</strong> — simulate parameters, get AI amendment suggestions</li>
-              <li>Use <strong>KOL Finder</strong> to identify leading investigators in your therapeutic area</li>
+              <li>Use <strong>KOL Identification</strong> to identify leading investigators in your therapeutic area</li>
               <li>Run an <strong>Enrollment Simulation</strong> to project timelines from real historical enrollment data</li>
               <li>Check <strong>Safety Intelligence</strong> for the adverse event landscape before finalizing drug selection</li>
             </ol>

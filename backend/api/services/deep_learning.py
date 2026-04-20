@@ -16,7 +16,7 @@ import math
 import statistics
 import hashlib
 import logging
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer

@@ -1,7 +1,8 @@
+from __future__ import annotations
 import logging
 import re
 import difflib
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +160,7 @@ class PageIndex:
                     continue
                 seen_pages.add(pn)
                 tbl_txt = ("\n[TABLES]\n" + "\n".join(page.get("tables", []))) if page.get("tables") else ""
-                raw = f"\n[SECTION: {section.upper()} | PAGE {pn}]\n{page['text']}{tbl_txt}\n"
+                raw = f"\n[SECTION: {section.upper()} PAGE {pn}]\n{page['text']}{tbl_txt}\n"
                 
                 allowed = per_section_budget - section_chars
                 if allowed <= 0:
@@ -229,8 +230,7 @@ class ReasoningRetriever:
                 tabs = page.find_tables()
                 if tabs and tabs.tables:
                     for tab in tabs.tables:
-                        for row in tab.extract():
-                            tables_text.append(" | ".join([str(c) if c else "" for c in row]))
+                            tables_text.append(" ".join([str(c) if c else "" for c in row]))
 
                 pages.append({
                     "page_num": i + 1,

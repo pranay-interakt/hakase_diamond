@@ -1,5 +1,7 @@
+from __future__ import annotations
+from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
-from ..services import ctgov, analysis
+from ..services import ctgov, analysis, pytrial_integration
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
@@ -7,8 +9,8 @@ router = APIRouter(prefix="/sites", tags=["sites"])
 @router.get("/recommend")
 async def recommend_sites(
     condition: str = Query(...),
-    phase: str | None = Query(default=None),
-    countries: str | None = Query(default=None, description="Comma-separated country names"),
+    phase:Optional[ str ] = Query(default=None),
+    countries:Optional[ str ] = Query(default=None, description="Comma-separated country names"),
     limit: int = Query(default=30, le=100),
 ):
     phases = [p.strip().upper() for p in phase.split(",")] if phase else None
@@ -49,6 +51,8 @@ async def recommend_sites(
                     "activeTrials": 0,
                     "completedTrials": 0,
                     "status": loc.get("status", ""),
+                    # Internal rates extracted for ranking
+                    "enrollmentRate": analysis._compute_facility_rate(loc),
                 }
             all_sites[key]["trialCount"] += 1
             if loc.get("status") in ["RECRUITING", "ACTIVE_NOT_RECRUITING"]:
@@ -60,20 +64,15 @@ async def recommend_sites(
             break
 
     site_list = list(all_sites.values())
-    perf = analysis.estimate_site_performance(site_list)   # pass full dicts — includes trialCount/activeTrials/completedTrials
-
-    # estimate_site_performance returns sorted list; build a lookup by key
-    perf_map = {f"{p['facility']}|{p['city']}|{p['country']}": p for p in perf}
-
-    enriched = []
-    for site in site_list:
-        key = f"{site['facility']}|{site['city']}|{site['country']}"
-        p = perf_map.get(key, {})
-        enriched.append({**site, **{
-            "score": p.get("score", 0),
-            "enrollmentRate": p.get("enrollmentRate", None),
-            "rateSource": p.get("rateSource", "unknown"),
-        }})
+    # Use PyTrial Integration service
+    trial_meta = {"conditions": [condition], "phase": phases}
+    primary_loc = country_list[0] if country_list else None
+    
+    enriched = pytrial_integration.pytrial_ranker.rank_sites(
+        trial_data=trial_meta,
+        sites=site_list,
+        user_location=primary_loc
+    )
 
     enriched.sort(key=lambda x: (x.get("score", 0), x.get("trialCount", 0)), reverse=True)
     return {
@@ -81,7 +80,9 @@ async def recommend_sites(
         "total": len(enriched),
         "sites": enriched[:limit],
         "countrySummary": _summarize_by_country(enriched[:limit]),
+        "methodology": "Priority ranking using simulated PyTrial site selection benchmarks combined with facility experience and regional location relevance."
     }
+
 
 
 

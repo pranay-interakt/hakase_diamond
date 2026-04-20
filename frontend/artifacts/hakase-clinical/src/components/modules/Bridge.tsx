@@ -18,26 +18,17 @@ export default function Bridge() {
     setLoading(true);
     setError("");
     try {
-      // Mocking the pull from Layer 4
-      await new Promise(r => setTimeout(r, 2000));
-      setTrialData({
-        id: "T-8821-X",
-        name: "OncoLogic Phase 3 Expansion",
-        indication: "HER2+ Breast Cancer",
-        phase: "Phase 3",
-        enrollment: 450,
-        status: "Strategizing",
-        lastSync: new Date().toISOString(),
-        score: 88,
-        layers: {
-          L1: "Molecular Mapping",
-          L2: "Patient Stratification",
-          L3: "Site Optimization",
-          L4: "Protocol Finalization (Current)"
-        }
+      const resp = await fetch(`http://localhost:8000/api/bridge/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
       });
+      if (!resp.ok) throw new Error("API sync failed");
+      const data = await resp.json();
+      data.lastSync = new Date().toISOString();
+      setTrialData(data);
     } catch (e: any) {
-      setError("Failed to fetch trial data from Layer 4 ecosystem.");
+      setError("Failed to fetch trial data from Layer 4 ecosystem (Make sure backend is running).");
     } finally {
       setLoading(false);
     }

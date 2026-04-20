@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Optional, Union
 from fastapi import APIRouter, Query, HTTPException
 from ..services import pubmed
 
@@ -9,7 +11,7 @@ async def search_publications(
     q: str = Query(..., description="Search query — condition, drug, MeSH terms, etc."),
     max_results: int = Query(default=20, le=50),
     sort: str = Query(default="relevance", pattern="^(relevance|date)$"),
-    since_year: int | None = Query(default=None, description="Minimum publication year"),
+    since_year: Optional[int] = Query(default=None, description="Minimum publication year"),
 ):
     date_range = (f"{since_year}/01/01", "3000/12/31") if since_year else None
     try:
