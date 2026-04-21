@@ -386,11 +386,7 @@ export default function LandingPage() {
           >
             Accelerating<br />
             <span style={{ fontWeight: 700 }}>Clinical Trials</span><br />
-            <span style={{
-              fontWeight: 400,
-              color: "transparent",
-              WebkitTextStroke: "1.5px rgba(10,10,10,0.45)",
-            }}>with AI Intelligence</span>
+            with AI
           </motion.h1>
 
           {/* Divider + body */}
