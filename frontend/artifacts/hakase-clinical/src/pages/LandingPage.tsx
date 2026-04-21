@@ -1209,7 +1209,7 @@ export default function LandingPage() {
               <p
                 style={{
                   fontSize: 11,
-                  color: "#555",
+                  color: "#888",
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
                   marginBottom: 20,
@@ -1227,7 +1227,7 @@ export default function LandingPage() {
                   margin: "0 0 10px 0",
                 }}
               >
-                See enough?
+                Like what you see?
               </h2>
               <h2
                 style={{
@@ -1244,7 +1244,7 @@ export default function LandingPage() {
               <p
                 style={{
                   fontSize: 14.5,
-                  color: "#888",
+                  color: "#bbb",
                   lineHeight: 1.65,
                   marginBottom: 40,
                   maxWidth: 360,
