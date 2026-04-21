@@ -313,7 +313,6 @@ export default function LandingPage() {
         ref={heroRef}
         style={{
           position: "relative",
-          overflow: "hidden",
           background: "#faf9f7",
         }}
       >
@@ -322,9 +321,10 @@ export default function LandingPage() {
           style={{
             position: "relative",
             zIndex: 2,
-            maxWidth: "52%",
-            padding: "150px 72px 100px 64px",
+            maxWidth: "58%",
+            padding: "140px 0 100px 64px",
             y: textY,
+            overflow: "visible",
           }}
         >
           {/* Badge */}
@@ -373,17 +373,24 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.85, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
             style={{
-              fontSize: "clamp(42px, 5.2vw, 72px)",
-              fontWeight: 300,
-              lineHeight: 1.1,
-              letterSpacing: "-0.02em",
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontSize: "clamp(52px, 6.5vw, 90px)",
+              fontWeight: 400,
+              lineHeight: 1.05,
+              letterSpacing: "-0.01em",
               color: "#0a0a0a",
-              margin: "0 0 40px 0",
+              margin: "0 0 36px 0",
+              whiteSpace: "nowrap",
+              overflow: "visible",
             }}
           >
             Accelerating<br />
             <span style={{ fontWeight: 700 }}>Clinical Trials</span><br />
-            with AI
+            <span style={{
+              fontWeight: 400,
+              color: "transparent",
+              WebkitTextStroke: "1.5px rgba(10,10,10,0.45)",
+            }}>with AI Intelligence</span>
           </motion.h1>
 
           {/* Divider + body */}
@@ -847,21 +854,54 @@ export default function LandingPage() {
               </div>
 
               {/* Screenshot */}
-              <div style={{ lineHeight: 0, borderRadius: "0 0 16px 16px", overflow: "hidden" }}>
+              <div style={{ lineHeight: 0, borderRadius: "0 0 16px 16px", overflow: "hidden", position: "relative" }}>
                 <img
                   src="/dashboard-screenshot.jpg"
                   alt="Hakase Dashboard"
-                  style={{ width: "100%", display: "block" }}
+                  style={{
+                    width: "100%",
+                    display: "block",
+                    maxHeight: 460,
+                    objectFit: "cover",
+                    objectPosition: "top center",
+                  }}
                 />
-                {/* Subtle bottom reflection fade */}
+                {/* Dark fade so the bottom looks intentional, not cut-off */}
                 <div style={{
                   position: "absolute",
                   bottom: 0, left: 0, right: 0,
-                  height: 80,
-                  background: "linear-gradient(to top, rgba(245,243,239,0.6), transparent)",
-                  borderRadius: "0 0 16px 16px",
+                  height: 160,
+                  background: "linear-gradient(to top, #1e1e2e 0%, rgba(30,30,46,0.75) 40%, transparent 100%)",
                   pointerEvents: "none",
                 }} />
+                {/* Live status pill at bottom */}
+                <div style={{
+                  position: "absolute",
+                  bottom: 20, left: 0, right: 0,
+                  display: "flex",
+                  justifyContent: "center",
+                  pointerEvents: "none",
+                }}>
+                  <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 7,
+                    padding: "7px 18px",
+                    borderRadius: 999,
+                    background: "rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    backdropFilter: "blur(10px)",
+                  }}>
+                    <motion.div
+                      animate={{ scale: [1, 1.5, 1], opacity: [1, 0.6, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: 500, letterSpacing: "0.02em" }}>
+                      Live · 8 modules · Click to explore →
+                    </span>
+                  </div>
+                </div>
               </div>
             </motion.div>
 
