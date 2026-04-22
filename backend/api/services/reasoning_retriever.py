@@ -230,7 +230,10 @@ class ReasoningRetriever:
                 tabs = page.find_tables()
                 if tabs and tabs.tables:
                     for tab in tabs.tables:
-                            tables_text.append(" ".join([str(c) if c else "" for c in row]))
+                        extracted = tab.extract() or []
+                        for row in extracted:
+                            if row:
+                                tables_text.append(" | ".join([str(c) if c else "" for c in row]))
 
                 pages.append({
                     "page_num": i + 1,

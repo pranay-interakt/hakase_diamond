@@ -69,7 +69,11 @@ async def analyze_protocol_upload(file: UploadFile = File(...)):
     search_condition = (flat.get("conditions") or [""])[0] or ""
     phase_list = flat.get("phase") or []
     intervention_list = flat.get("interventions") or []
-    search_intervention = intervention_list[0].get("name") if isinstance(intervention_list[0], dict) else str(intervention_list[0]) if intervention_list else ""
+    if intervention_list:
+        first_iv = intervention_list[0]
+        search_intervention = first_iv.get("name", "") if isinstance(first_iv, dict) else str(first_iv)
+    else:
+        search_intervention = ""
 
     hub = await data_hub.fetch_all(
         condition=search_condition,
