@@ -433,7 +433,7 @@ PRIMARY ENDPOINTS: ..."
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Protocol Studio</h2>
-          {parsed.title && <p className="text-sm text-slate-500 mt-0.5 max-w-xl truncate" title={parsed.title}>{parsed.title}</p>}
+          {parsed.title && !parsed.title.includes("===") && <p className="text-sm text-slate-500 mt-0.5 max-w-xl truncate" title={parsed.title}>{parsed.title}</p>}
         </div>
         <Button variant="outline" size="sm" onClick={() => { setResult(null); setAmendments([]); setAmendResult(null); setStrategiesData(null); setSitesData(null); setKolsData(null); }}>
           Upload New
@@ -441,46 +441,52 @@ PRIMARY ENDPOINTS: ..."
       </div>
 
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <div className={`rounded-xl border p-4 text-center ${score.score >= 75 ? "bg-emerald-50 border-emerald-200" : score.score >= 55 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200"}`}>
-          <p className="text-xs text-slate-500 mb-1">Compliance Score</p>
-          <p className={`text-4xl font-bold ${score.score >= 75 ? "text-emerald-600" : score.score >= 55 ? "text-amber-600" : "text-red-600"}`}>{score.score ?? "—"}</p>
-          <p className="text-sm text-slate-500">Grade {score.grade ?? "—"}</p>
+      {/* Score metric cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+        {/* Compliance */}
+        {(() => {
+          const s = score.score ?? null;
+          const good = s !== null && s >= 75;
+          const ok = s !== null && s >= 55;
+          return (
+            <div style={{ borderRadius: 14, border: `1px solid ${good ? "#a7f3d0" : ok ? "#fde68a" : "#fca5a5"}`, background: good ? "#f0fdf4" : ok ? "#fffbeb" : "#fef2f2", padding: "16px 14px" }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Compliance</p>
+              <p style={{ fontSize: 32, fontWeight: 900, color: good ? "#059669" : ok ? "#d97706" : "#dc2626", lineHeight: 1 }}>{s ?? "—"}</p>
+              <p style={{ fontSize: 12, fontWeight: 600, color: good ? "#065f46" : ok ? "#92400e" : "#991b1b", marginTop: 4 }}>Grade {score.grade ?? "—"}</p>
+            </div>
+          );
+        })()}
+        {/* Success Probability */}
+        <div style={{ borderRadius: 14, border: "1px solid #bfdbfe", background: "#eff6ff", padding: "16px 14px" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Success Prob.</p>
+          <p style={{ fontSize: 32, fontWeight: 900, color: "#1d4ed8", lineHeight: 1 }}>{result.successProbability?.probability != null ? `${result.successProbability.probability}%` : "—"}</p>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "#1e40af", marginTop: 4 }}>{result.successProbability?.rating ?? "ML Model"}</p>
         </div>
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-          <p className="text-xs text-slate-500 mb-1">ML Success Probability</p>
-          <p className="text-4xl font-bold text-blue-600">{result.successProbability?.probability ?? "—"}%</p>
-          <p className="text-[10px] text-blue-500 font-semibold mt-0.5">{result.successProbability?.method?.replace("GradientBoostingClassifier", "GB Model") ?? result.successProbability?.rating ?? ""}</p>
-          {result.successProbability?.proofLink && (
-            <a href={result.successProbability.proofLink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline">Source ↗</a>
-          )}
+        {/* FAERS Safety */}
+        {(() => {
+          const risk = result.safetyIntelligence?.riskLevel;
+          const color = risk === "LOW" ? { bg: "#f0fdf4", border: "#a7f3d0", val: "#059669", label: "#065f46" } : risk === "HIGH" ? { bg: "#fef2f2", border: "#fca5a5", val: "#dc2626", label: "#991b1b" } : { bg: "#fffbeb", border: "#fde68a", val: "#d97706", label: "#92400e" };
+          return (
+            <div style={{ borderRadius: 14, border: `1px solid ${color.border}`, background: color.bg, padding: "16px 14px" }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>FAERS Safety</p>
+              <p style={{ fontSize: 32, fontWeight: 900, color: color.val, lineHeight: 1 }}>{result.safetyIntelligence?.safetyScore ?? "—"}</p>
+              <p style={{ fontSize: 12, fontWeight: 600, color: color.label, marginTop: 4 }}>{risk ?? "No data"}</p>
+            </div>
+          );
+        })()}
+        {/* Literature */}
+        <div style={{ borderRadius: 14, border: "1px solid #ddd6fe", background: "#faf5ff", padding: "16px 14px" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Literature</p>
+          <p style={{ fontSize: 32, fontWeight: 900, color: "#7c3aed", lineHeight: 1 }}>{result.literatureMaturity?.maturityScore ?? "—"}</p>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "#5b21b6", marginTop: 4 }}>{result.literatureMaturity?.tier ?? "—"}</p>
         </div>
-        <div className={`rounded-xl border p-4 text-center ${
-          result.safetyIntelligence?.riskLevel === "LOW" ? "bg-emerald-50 border-emerald-200" :
-          result.safetyIntelligence?.riskLevel === "MODERATE" ? "bg-amber-50 border-amber-200" :
-          result.safetyIntelligence?.riskLevel === "HIGH" ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-200"
-        }`}>
-          <p className="text-xs text-slate-500 mb-1">FAERS Safety Score</p>
-          <p className={`text-4xl font-bold ${result.safetyIntelligence?.riskLevel === "LOW" ? "text-emerald-600" : result.safetyIntelligence?.riskLevel === "HIGH" ? "text-red-600" : "text-amber-600"}`}>
-            {result.safetyIntelligence?.safetyScore ?? "—"}
+        {/* Issues */}
+        <div style={{ borderRadius: 14, border: "1px solid #e2e8f0", background: "#fff", padding: "16px 14px" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Issues</p>
+          <p style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", lineHeight: 1 }}>{issues.length}</p>
+          <p style={{ fontSize: 12, fontWeight: 600, color: (score.critical ?? 0) > 0 ? "#dc2626" : "#94a3b8", marginTop: 4 }}>
+            {(score.critical ?? 0) > 0 ? `${score.critical} critical` : "None critical"}
           </p>
-          <p className="text-[10px] font-semibold text-slate-500">{result.safetyIntelligence?.riskLevel ?? "UNKNOWN"}</p>
-          {result.safetyIntelligence?.proofLink && (
-            <a href={result.safetyIntelligence.proofLink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline">OpenFDA ↗</a>
-          )}
-        </div>
-        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-center">
-          <p className="text-xs text-slate-500 mb-1">Literature Maturity</p>
-          <p className="text-4xl font-bold text-purple-600">{result.literatureMaturity?.maturityScore ?? "—"}</p>
-          <p className="text-[10px] font-semibold text-purple-500">{result.literatureMaturity?.tier ?? "—"}</p>
-          {result.literatureMaturity?.proofLink && (
-            <a href={result.literatureMaturity.proofLink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-400 hover:underline">{result.literatureMaturity?.articleCount ?? "?"} Papers ↗</a>
-          )}
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
-          <p className="text-xs text-slate-500 mb-1">Issues Found</p>
-          <p className="text-4xl font-bold text-slate-900">{issues.length}</p>
-          <p className="text-sm text-slate-500">{score.critical ?? 0} critical</p>
         </div>
       </div>
 
@@ -547,7 +553,7 @@ PRIMARY ENDPOINTS: ..."
           data={sitesData}
           loading={sitesLoading}
           selectedCountry={selectedCountry}
-          setSelectedCountry={(c) => { setSelectedCountry(c); loadSites(c); }}
+          setSelectedCountry={(c: string) => { setSelectedCountry(c); loadSites(c); }}
           selectedSites={selectedSites}
           setSelectedSites={setSelectedSites}
           condition={parsed.conditions?.[0] || ""}
@@ -560,12 +566,12 @@ PRIMARY ENDPOINTS: ..."
   );
 }
 
-function AnalysisTab({ 
-  issues, 
-  score, 
-  parsed, 
-  result, 
-  expandedIssue, 
+function AnalysisTab({
+  issues,
+  score,
+  parsed,
+  result,
+  expandedIssue,
   setExpandedIssue,
   isSimulating,
   setIsSimulating,
@@ -574,390 +580,338 @@ function AnalysisTab({
   suggestedAmendments,
   runSimulation,
   simulationLoading,
-  simulationResult
+  simulationResult,
 }: any) {
   const [showAmends, setShowAmends] = useState(true);
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-      <div className="lg:col-span-2 space-y-4">
-        {/* Simulation Banner */}
-        {isSimulating && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                <BarChart3 className="h-4 w-4 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-amber-900">Simulation Mode Active</p>
-                <p className="text-xs text-amber-700">Adjusting parameters to assess performance delta.</p>
-              </div>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => { setIsSimulating(false); setSimulatedData(parsed); }} className="border-amber-200 bg-white hover:bg-amber-50 text-amber-700">
-              Reset Simulation
-            </Button>
-          </div>
-        )}
+  const successProb = result?.successProbability;
+  const safety = result?.safetyIntelligence;
+  const literature = result?.literatureMaturity;
+  const provenance = result?.dataProvenance;
 
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Database className="h-4 w-4 text-blue-500" />
-              Protocol Parameters
-            </h3>
-            {!isSimulating && (
-              <Button size="sm" variant="ghost" onClick={() => setIsSimulating(true)} className="text-xs text-blue-600 font-bold hover:text-blue-700 hover:bg-blue-50">
-                <Wand2 className="h-3.5 w-3.5 mr-1" /> Edit & Simulate Impact
-              </Button>
-            )}
+  return (
+    <div className="space-y-5">
+      {/* Simulation Active Banner */}
+      {isSimulating && (
+        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#fef3c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <BarChart3 className="h-4 w-4" style={{ color: "#d97706" }} />
+            </div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#92400e" }}>Simulation Mode Active</p>
+              <p style={{ fontSize: 11, color: "#b45309" }}>Edit any parameter below, then run to see the compliance delta.</p>
+            </div>
           </div>
-          <div className="p-4 grid grid-cols-2 gap-4">
-            {[
-              { label: "Phase", key: "phase", type: "phase" },
-              { label: "Enrollment", key: "enrollmentCount", type: "number" },
-              { label: "Allocation", key: "allocation", type: "allocation" },
-              { label: "Masking", key: "masking", type: "masking" },
-              { label: "Arms", key: "armsCount", type: "number" },
-              { label: "Sponsor", key: "sponsorName", type: "text" },
-            ].map(f => (
-              <div key={f.key}>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">{f.label}</label>
-{isSimulating ? (
-                  <div className="relative group">
-                    <Input 
-                      className="text-sm font-semibold border-amber-200 focus:ring-amber-200 bg-amber-50/30"
+          <Button size="sm" variant="outline" onClick={() => { setIsSimulating(false); setSimulatedData(parsed); }}
+            style={{ borderColor: "#fde68a", background: "#fff", color: "#b45309", fontSize: 12, fontWeight: 600 }}>
+            Reset
+          </Button>
+        </div>
+      )}
+
+      {/* Two-column layout */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20, alignItems: "start" }}>
+
+        {/* ── LEFT COLUMN ── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+          {/* Protocol Parameters */}
+          <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                <Database className="h-4 w-4" style={{ color: "#3b82f6" }} />
+                Protocol Parameters
+              </h3>
+              {!isSimulating && (
+                <Button size="sm" variant="ghost" onClick={() => setIsSimulating(true)}
+                  style={{ fontSize: 12, color: "#3b82f6", fontWeight: 600, height: 28 }}>
+                  <Wand2 className="h-3.5 w-3.5 mr-1" /> Edit & Simulate
+                </Button>
+              )}
+            </div>
+            <div style={{ padding: "18px 20px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px 24px" }}>
+              {[
+                { label: "Phase", key: "phase" },
+                { label: "Enrollment", key: "enrollmentCount" },
+                { label: "Allocation", key: "allocation" },
+                { label: "Masking", key: "masking" },
+                { label: "Sponsor", key: "sponsorName" },
+                { label: "Study Type", key: "studyType" },
+              ].map(f => (
+                <div key={f.key}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 5 }}>{f.label}</p>
+                  {isSimulating ? (
+                    <Input
+                      style={{ fontSize: 13, fontWeight: 600, borderColor: "#fde68a", background: "rgba(253,230,138,0.15)", height: 34 }}
                       value={simulatedData[f.key] || ""}
                       onChange={e => setSimulatedData((v: any) => ({ ...v, [f.key]: e.target.value }))}
                     />
-                    <div className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-amber-400" />
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">{String(parsed[f.key] || "—")}</p>
-                    {(() => {
-                      const reportItem = result?.extractionReport?.find((r: any) => r.field === f.key);
-                      if (!reportItem) return null;
-                      return (
-                        <div className="mt-2 bg-slate-50 border border-slate-100 rounded p-2 space-y-1">
-                          <p className="text-[9px] text-slate-500"><span className="font-semibold text-slate-700">Data Used:</span> {reportItem.dataUsed || "Extracted from Protocol text elements"}</p>
-                          <p className="text-[9px] text-slate-500 leading-tight"><span className="font-semibold text-slate-700">Methodology:</span> {reportItem.methodology || "Cross-referenced and verified via heuristics"}</p>
-                          {reportItem.proofLink && (
-                            <a href={reportItem.proofLink.startsWith("http") ? reportItem.proofLink : "#"} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-600 hover:underline flex items-center gap-1 mt-1">
-                              <ExternalLink className="h-2.5 w-2.5" />
-                              {reportItem.proofLink.startsWith("http") ? "View CTGov Validation" : "PageIndex Reference"}
-                            </a>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Run Simulation CTA */}
-        {isSimulating && (
-          <div className="space-y-3">
-            <Button
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold shadow-lg shadow-amber-200/50 transition-all"
-              onClick={runSimulation}
-              disabled={simulationLoading}
-            >
-              {simulationLoading ? (
-                <><Loader2 className="h-4 w-4 animate-spin mr-2" />Running Simulation…</>
-              ) : (
-                <><BarChart3 className="h-4 w-4 mr-2" />Run Simulation with New Parameters →</>
-              )}
-            </Button>
-
-            {simulationResult?.impact && (
-              <div className={`rounded-xl border p-4 ${
-                (simulationResult.impact?.delta?.scoreChange ?? 0) >= 0
-                  ? 'bg-emerald-50 border-emerald-200'
-                  : 'bg-red-50 border-red-200'
-              }`}>
-                <p className="text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
-                  {(simulationResult.impact?.delta?.scoreChange ?? 0) >= 0
-                    ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                    : <AlertCircle className="h-3.5 w-3.5 text-red-600" />}
-                  Simulation Delta
-                </p>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-[10px] text-slate-500">Score Change</p>
-                    <p className={`text-2xl font-bold ${
-                      (simulationResult.impact?.delta?.scoreChange ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-600'
-                    }`}>
-                      {(simulationResult.impact?.delta?.scoreChange ?? 0) > 0 ? '+' : ''}
-                      {simulationResult.impact?.delta?.scoreChange ?? 0}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-500">Issues Resolved</p>
-                    <p className="text-2xl font-bold text-emerald-600">
-                      {simulationResult.impact?.delta?.resolvedIssues?.length ?? 0}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-500">New Issues</p>
-                    <p className="text-2xl font-bold text-red-600">
-                      {simulationResult.impact?.delta?.newIssues?.length ?? 0}
-                    </p>
-                  </div>
+                  ) : (
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{String(parsed[f.key] || "—")}</p>
+                  )}
                 </div>
-                {simulationResult.impact?.enrollmentImpact?.factors?.length > 0 && (
-                  <div className="mt-3 border-t border-black/10 pt-3 space-y-1">
-                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Enrollment Impact</p>
-                    {simulationResult.impact.enrollmentImpact.factors.map((f: any, i: number) => (
-                      <p key={i} className="text-xs text-slate-600">
-                        {f.impact > 0 ? '▲' : '▼'} {f.description}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-        {result.successProbability?.factors?.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Activity className="h-4 w-4 text-emerald-500" />
-              Impact Breakdown
-            </h3>
-            <div className="space-y-4">
-              {result.successProbability.factors.map((f: any, i: number) => {
-                const isModified = isSimulating && ["Phase Consideration", "Sample Size Validation"].some(label => f.factor.includes(label));
-                return (
-                  <div key={i} className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-bold text-slate-700">{f.factor}</p>
-                        {isModified && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-none text-[8px] font-bold py-0 h-4">SIMULATED</Badge>}
-                      </div>
-                      <span className="text-xs font-bold text-slate-500">{Math.round(f.score)}/{f.weight}</span>
-                    </div>
-<div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
-                      <div 
-                        className={`h-full transition-all duration-500 rounded-full ${isModified ? "bg-amber-400" : "bg-blue-500"}`} 
-                        style={{ width: `${(f.score / f.weight) * 100}%` }} 
-                      />
-                      {isModified && (
-                        <div className="h-full bg-emerald-400 opacity-60 animate-pulse" style={{ width: '5%' }} />
-                      )}
-                    </div>
-                    <p className="text-[10px] text-slate-500 leading-relaxed font-medium">{f.description}</p>
-                    {(f.dataUsed || f.methodology) && (
-                      <div className="mt-1 bg-slate-50 border border-slate-100 rounded p-2 space-y-1">
-                        {f.dataUsed && <p className="text-[9px] text-slate-500"><span className="font-semibold text-slate-700">Data Proof:</span> {f.dataUsed}</p>}
-                        {f.methodology && <p className="text-[9px] text-slate-500 leading-tight"><span className="font-semibold text-slate-700">Analytics Method:</span> {f.methodology}</p>}
-                        {f.proofLink && (
-                          <a href={f.proofLink.startsWith("http") ? f.proofLink : "#"} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-600 hover:underline flex items-center gap-1 mt-1">
-                            <ExternalLink className="h-2.5 w-2.5" /> Corroborating Source Link
-                          </a>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              ))}
             </div>
           </div>
-        )}
 
-        {/* Endpoints & Eligibility (Read only or rich edit) */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="text-sm font-bold text-slate-900 mb-4">Endpoints & Eligibility</h3>
-          <div className="space-y-4">
-<div>
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Primary Endpoints</p>
-                {(() => {
-                  const r = result?.extractionReport?.find((x: any) => x.field === "primaryOutcomes");
-                  return r && r.proofLink ? (
-                    <a href={r.proofLink.startsWith("http") ? r.proofLink : "#"} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:underline flex items-center gap-1" title={`${r.dataUsed} - ${r.methodology}`}>
-                      <ExternalLink className="h-3 w-3" /> Source
-                    </a>
-                  ) : null;
-                })()}
+          {/* Endpoints & Eligibility */}
+          <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: "18px 20px" }}>
+            <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 16 }}>Endpoints & Eligibility</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Primary Endpoints</p>
+                {(parsed.primaryOutcomes || []).length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {(parsed.primaryOutcomes || []).map((ep: string, i: number) => (
+                      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <Check className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#10b981", marginTop: 2 }} />
+                        <span style={{ fontSize: 13, color: "#334155", lineHeight: 1.55 }}>{ep}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p style={{ fontSize: 13, color: "#94a3b8", fontStyle: "italic" }}>Not specified</p>}
               </div>
-              <div className="space-y-1">
-                {(parsed.primaryOutcomes || []).map((ep: string, i: number) => (
-                  <div key={i} className="text-xs text-slate-700 font-medium flex items-start gap-2">
-                    <Check className="h-3 w-3 text-emerald-500 mt-1 flex-shrink-0" />
-                    {ep}
+              {parsed.eligibilityCriteria && (
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Eligibility</p>
+                  <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.65, display: "-webkit-box", WebkitLineClamp: 5, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {String(parsed.eligibilityCriteria)}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Simulation Run Button + Result */}
+          {isSimulating && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <Button
+                className="w-full"
+                style={{ background: "linear-gradient(135deg,#f59e0b,#ea580c)", color: "#fff", fontWeight: 700, height: 44, fontSize: 14, boxShadow: "0 4px 14px rgba(245,158,11,0.3)" }}
+                onClick={runSimulation}
+                disabled={simulationLoading}
+              >
+                {simulationLoading
+                  ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Running Simulation…</>
+                  : <><BarChart3 className="h-4 w-4 mr-2" />Run Simulation with New Parameters →</>
+                }
+              </Button>
+              {simulationResult?.impact && (
+                <div style={{
+                  borderRadius: 14, border: `1px solid ${(simulationResult.impact?.delta?.scoreChange ?? 0) >= 0 ? "#a7f3d0" : "#fca5a5"}`,
+                  background: (simulationResult.impact?.delta?.scoreChange ?? 0) >= 0 ? "#f0fdf4" : "#fef2f2",
+                  padding: "16px 20px"
+                }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                    {(simulationResult.impact?.delta?.scoreChange ?? 0) >= 0
+                      ? <CheckCircle2 className="h-3.5 w-3.5" style={{ color: "#10b981" }} />
+                      : <AlertCircle className="h-3.5 w-3.5" style={{ color: "#ef4444" }} />
+                    }
+                    Simulation Delta
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, textAlign: "center" }}>
+                    {[
+                      { label: "Score Change", val: `${(simulationResult.impact?.delta?.scoreChange ?? 0) > 0 ? "+" : ""}${simulationResult.impact?.delta?.scoreChange ?? 0}`, color: (simulationResult.impact?.delta?.scoreChange ?? 0) >= 0 ? "#10b981" : "#ef4444" },
+                      { label: "Issues Resolved", val: simulationResult.impact?.delta?.resolvedIssues?.length ?? 0, color: "#10b981" },
+                      { label: "New Issues", val: simulationResult.impact?.delta?.newIssues?.length ?? 0, color: "#ef4444" },
+                    ].map(d => (
+                      <div key={d.label}>
+                        <p style={{ fontSize: 10, color: "#64748b" }}>{d.label}</p>
+                        <p style={{ fontSize: 28, fontWeight: 800, color: d.color, lineHeight: 1.1 }}>{d.val}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Optimization Tasks (Issues) */}
+          {issues.length > 0 && (
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+              <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Optimization Tasks</h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {score.critical > 0 && (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99, background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }}>
+                      {score.critical} critical
+                    </span>
+                  )}
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "#f1f5f9", color: "#64748b" }}>
+                    {issues.length} total
+                  </span>
+                </div>
+              </div>
+              <div>
+                {issues.map((issue: any, idx: number) => (
+                  <div key={issue.id} style={{ borderBottom: idx < issues.length - 1 ? "1px solid #f8fafc" : "none" }}>
+                    <button
+                      style={{ width: "100%", padding: "13px 20px", display: "flex", alignItems: "center", gap: 12, textAlign: "left", background: "none", border: "none", cursor: "pointer" }}
+                      onClick={() => setExpandedIssue(expandedIssue === issue.id ? null : issue.id)}
+                    >
+                      <div style={{
+                        width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                        background: issue.severity === "critical" ? "#ef4444" : issue.severity === "major" ? "#f97316" : "#f59e0b"
+                      }} />
+                      <p style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{issue.rule}</p>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, textTransform: "uppercase", padding: "2px 8px", borderRadius: 99,
+                        background: issue.severity === "critical" ? "#fef2f2" : issue.severity === "major" ? "#fff7ed" : "#fffbeb",
+                        color: issue.severity === "critical" ? "#dc2626" : issue.severity === "major" ? "#ea580c" : "#d97706",
+                      }}>{issue.severity}</span>
+                      {expandedIssue === issue.id
+                        ? <ChevronUp className="h-4 w-4 flex-shrink-0" style={{ color: "#94a3b8" }} />
+                        : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: "#94a3b8" }} />
+                      }
+                    </button>
+                    {expandedIssue === issue.id && (
+                      <div style={{ padding: "4px 20px 16px 40px", background: "#fafafa" }}>
+                        <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.65, marginBottom: 10 }}>{issue.description}</p>
+                        <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e2e8f0", padding: "12px 14px" }}>
+                          <p style={{ fontSize: 10, fontWeight: 700, color: "#10b981", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>
+                            <CheckCircle2 className="h-3 w-3" /> Resolution
+                          </p>
+                          <p style={{ fontSize: 13, color: "#334155", lineHeight: 1.6 }}>{issue.recommendation}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Key Eligibility</p>
-                {(() => {
-                  const r = result?.extractionReport?.find((x: any) => x.field === "eligibilityCriteria");
-                  return r && r.proofLink ? (
-                    <a href={r.proofLink.startsWith("http") ? r.proofLink : "#"} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 hover:underline flex items-center gap-1" title={`${r.dataUsed} - ${r.methodology}`}>
-                      <ExternalLink className="h-3 w-3" /> Source
-                    </a>
-                  ) : null;
-                })()}
-              </div>
-              <div className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                {String(parsed.eligibilityCriteria || "Not specified")}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
-      </div>
 
-      {/* ── Intelligence Panels (FAERS · PubMed · Data Provenance) ── */}
-      {(result.safetyIntelligence?.topReactions?.length > 0 || result.literatureMaturity?.topReferences?.length > 0 || result.dataProvenance?.sources) && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-          {/* Safety Intelligence */}
-          {result.safetyIntelligence && (
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <Activity className="h-4 w-4 text-red-500" />
-                FAERS Safety Signal
+        {/* ── RIGHT COLUMN ── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+          {/* AI Amendment Suggestions */}
+          {suggestedAmendments.length > 0 && showAmends && (
+            <div style={{ background: "linear-gradient(135deg,#eef2ff,#f5f3ff)", border: "1px solid #c7d2fe", borderRadius: 14, padding: "14px 16px", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 10, right: 10 }}>
+                <button onClick={() => setShowAmends(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#a5b4fc", padding: 2 }}>
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <h3 style={{ fontSize: 12, fontWeight: 700, color: "#4338ca", display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                <Wand2 className="h-3.5 w-3.5" /> AI Suggestions
               </h3>
-              <div className="space-y-2">
-                <p className="text-xs text-slate-600 leading-relaxed">{result.safetyIntelligence.reasoning}</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {(result.safetyIntelligence.topReactions || []).map((r: string, i: number) => (
-                    <span key={i} className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
-                      (result.safetyIntelligence.seriousReactions || []).some((s: string) => r.toLowerCase().includes(s))
-                        ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"
-                    }`}>{r}</span>
-                  ))}
-                </div>
-                <p className="text-[9px] text-slate-400"><span className="font-semibold text-slate-600">Method:</span> {result.safetyIntelligence.methodology}</p>
-                {result.safetyIntelligence.proofLink && (
-                  <a href={result.safetyIntelligence.proofLink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-600 hover:underline flex items-center gap-1">
-                    <ExternalLink className="h-2.5 w-2.5" /> OpenFDA FAERS Source
-                  </a>
-                )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {suggestedAmendments.slice(0, 3).map((amend: any) => (
+                  <div key={amend.id} style={{ background: "rgba(255,255,255,0.75)", borderRadius: 10, padding: "10px 12px", border: "1px solid #e0e7ff" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "#3730a3", lineHeight: 1.35 }}>{amend.title}</p>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 99, background: "#d1fae5", color: "#065f46", flexShrink: 0 }}>{amend.impact}</span>
+                    </div>
+                    <p style={{ fontSize: 11, color: "#6366f1", lineHeight: 1.5 }}>{amend.rationale?.slice(0, 90)}{amend.rationale?.length > 90 ? "…" : ""}</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Literature Maturity */}
-          {result.literatureMaturity && (
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-purple-500" />
-                PubMed Evidence Base
+          {/* Success Probability Factors */}
+          {successProb?.factors?.length > 0 && (
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: "16px 18px" }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 14, display: "flex", alignItems: "center", gap: 7 }}>
+                <Activity className="h-4 w-4" style={{ color: "#3b82f6" }} />
+                Success Factors
               </h3>
-              <p className="text-xs text-slate-600 mb-2 leading-relaxed">{result.literatureMaturity.reasoning}</p>
-              <div className="space-y-1.5">
-                {(result.literatureMaturity.topReferences || []).map((ref: any) => (
-                  <a key={ref.pmid} href={ref.url} target="_blank" rel="noopener noreferrer"
-                     className="block bg-purple-50 border border-purple-100 rounded-lg p-2 hover:border-purple-300 transition-colors">
-                    <p className="text-[10px] font-semibold text-slate-800 line-clamp-2">{ref.title}</p>
-                    <p className="text-[9px] text-purple-600 mt-0.5">PMID {ref.pmid} · {ref.year}</p>
-                  </a>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {successProb.factors.map((f: any, i: number) => (
+                  <div key={i}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: "#334155", lineHeight: 1.3, flex: 1, paddingRight: 8 }}>{f.factor}</p>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", flexShrink: 0 }}>{Math.round(f.score)}/{f.weight}</span>
+                    </div>
+                    <div style={{ height: 5, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+                      <div style={{ height: "100%", background: f.score / f.weight >= 0.7 ? "#10b981" : f.score / f.weight >= 0.4 ? "#3b82f6" : "#f59e0b", borderRadius: 99, width: `${(f.score / f.weight) * 100}%`, transition: "width 0.5s" }} />
+                    </div>
+                    <p style={{ fontSize: 10, color: "#94a3b8", marginTop: 3, lineHeight: 1.4 }}>{f.description}</p>
+                  </div>
                 ))}
               </div>
-              {result.literatureMaturity.proofLink && (
-                <a href={result.literatureMaturity.proofLink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-blue-600 hover:underline flex items-center gap-1 mt-2">
-                  <ExternalLink className="h-2.5 w-2.5" /> PubMed Query
+            </div>
+          )}
+
+          {/* FAERS Safety Signal */}
+          {safety && (
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: "16px 18px" }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 10, display: "flex", alignItems: "center", gap: 7 }}>
+                <Activity className="h-4 w-4" style={{ color: "#ef4444" }} />
+                FAERS Safety Signal
+              </h3>
+              {safety.reasoning && (
+                <p style={{ fontSize: 12, color: "#475569", lineHeight: 1.6, marginBottom: 10 }}>{safety.reasoning}</p>
+              )}
+              {(safety.topReactions || []).length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
+                  {safety.topReactions.map((r: string, i: number) => (
+                    <span key={i} style={{
+                      fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 99,
+                      background: (safety.seriousReactions || []).some((s: string) => r.toLowerCase().includes(s)) ? "#fef2f2" : "#f8fafc",
+                      color: (safety.seriousReactions || []).some((s: string) => r.toLowerCase().includes(s)) ? "#dc2626" : "#475569",
+                    }}>{r}</span>
+                  ))}
+                </div>
+              )}
+              {safety.proofLink && (
+                <a href={safety.proofLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#3b82f6", display: "flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
+                  <ExternalLink className="h-3 w-3" /> OpenFDA FAERS
                 </a>
               )}
             </div>
           )}
 
-          {/* Data Provenance */}
-          {result.dataProvenance?.sources && (
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-              <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <Database className="h-4 w-4 text-blue-500" />
-                Live Data Sources
+          {/* PubMed Evidence */}
+          {literature && (
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", padding: "16px 18px" }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 10, display: "flex", alignItems: "center", gap: 7 }}>
+                <BookOpen className="h-4 w-4" style={{ color: "#8b5cf6" }} />
+                PubMed Evidence
               </h3>
-              <div className="space-y-2">
-                {Object.entries(result.dataProvenance.sources).map(([key, source]: [string, any]) => (
-                  <div key={key} className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] text-slate-700 font-medium truncate flex-1">{source}</p>
-                    {result.dataProvenance.proofLinks?.[key] && (
-                      <a href={result.dataProvenance.proofLinks[key]} target="_blank" rel="noopener noreferrer"
-                         className="text-[9px] text-blue-500 hover:underline flex-shrink-0">↗</a>
+              {literature.reasoning && (
+                <p style={{ fontSize: 12, color: "#475569", lineHeight: 1.6, marginBottom: 10 }}>{literature.reasoning}</p>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {(literature.topReferences || []).slice(0, 3).map((ref: any) => (
+                  <a key={ref.pmid} href={ref.url} target="_blank" rel="noopener noreferrer"
+                    style={{ display: "block", background: "#faf5ff", borderRadius: 10, padding: "8px 10px", border: "1px solid #ede9fe", textDecoration: "none" }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: "#1e293b", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{ref.title}</p>
+                    <p style={{ fontSize: 10, color: "#8b5cf6", marginTop: 3 }}>PMID {ref.pmid} · {ref.year}</p>
+                  </a>
+                ))}
+              </div>
+              {literature.proofLink && (
+                <a href={literature.proofLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#3b82f6", display: "flex", alignItems: "center", gap: 4, marginTop: 10, textDecoration: "none" }}>
+                  <ExternalLink className="h-3 w-3" /> PubMed Query
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Data Sources */}
+          {provenance?.sources && (
+            <div style={{ background: "#f8fafc", borderRadius: 14, border: "1px solid #e2e8f0", padding: "14px 18px" }}>
+              <h3 style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                <Database className="h-3.5 w-3.5" /> Live Data Sources
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                {Object.entries(provenance.sources).map(([key, source]: [string, any]) => (
+                  <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />
+                      <p style={{ fontSize: 12, color: "#475569", fontWeight: 500 }}>{source}</p>
+                    </div>
+                    {provenance.proofLinks?.[key] && (
+                      <a href={provenance.proofLinks[key]} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#3b82f6", textDecoration: "none", flexShrink: 0 }}>↗</a>
                     )}
                   </div>
                 ))}
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      <div className="space-y-6">
-        {/* Suggested Amendments */}
-
-        {suggestedAmendments.length > 0 && showAmends && (
-          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-              <Sparkles className="h-12 w-12 text-indigo-600" />
-            </div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-indigo-900 flex items-center gap-2">
-                <Wand2 className="h-4 w-4 text-indigo-600" />
-                AI Amendment Tips
-              </h3>
-              <button onClick={() => setShowAmends(false)} className="text-indigo-400 hover:text-indigo-600">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              {suggestedAmendments.slice(0, 3).map((amend: any) => (
-                <div key={amend.id} className="bg-white/80 backdrop-blur-sm rounded-xl p-3 border border-indigo-100 shadow-sm shadow-indigo-100/50">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-bold text-indigo-900">{amend.title}</p>
-                    <Badge className="bg-emerald-100 text-emerald-700 border-none text-[8px] px-1">{amend.impact}</Badge>
-                  </div>
-                  <p className="text-[10px] text-indigo-700 line-clamp-2 leading-relaxed">{amend.rationale}</p>
-                  <Button variant="link" className="p-0 h-auto text-[10px] font-bold text-indigo-600 mt-1">
-                    Apply Suggestion
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Issues List */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-slate-900 flex items-center justify-between">
-            Optimization Tasks
-            <Badge variant="outline" className="text-[10px]">{issues.length}</Badge>
-          </h3>
-          <div className="space-y-2">
-            {issues.map((issue: any) => (
-              <div key={issue.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden group hover:border-blue-300 transition-all">
-                <button
-                  className="w-full p-3 flex items-center gap-3 text-left"
-                  onClick={() => setExpandedIssue(expandedIssue === issue.id ? null : issue.id)}
-                >
-                  <div className={`h-2 w-2 rounded-full ${issue.severity === 'critical' ? 'bg-red-500' : issue.severity === 'major' ? 'bg-orange-500' : 'bg-amber-400'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-900 truncate">{issue.rule}</p>
-                  </div>
-                  {expandedIssue === issue.id ? <ChevronUp className="h-3.5 w-3.5 text-slate-400" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
-                </button>
-                {expandedIssue === issue.id && (
-                  <div className="px-4 pb-4 pt-1 space-y-3">
-                    <p className="text-[11px] text-slate-500 leading-relaxed">{issue.description}</p>
-                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                        Resolution Strategy
-                      </p>
-                      <p className="text-[11px] text-slate-700 font-medium leading-relaxed">{issue.recommendation}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>
