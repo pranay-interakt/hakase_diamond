@@ -167,7 +167,7 @@ async def analyze_protocol_text(body: ProtocolTextInput):
 
     issues = check_protocol_compliance(flat)
     score = calculate_compliance_score(issues)
-    success_prob = analysis.compute_success_probability(flat, similar_studies, fda_data, pubmed_data)
+    success_prob = analysis.compute_success_probability(flat, similar_studies)
 
     return {
         "parsed": {**flat, "__extractionMeta": fields.get("__meta__")},

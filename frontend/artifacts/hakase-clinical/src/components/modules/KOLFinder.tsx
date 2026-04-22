@@ -37,6 +37,16 @@ export default function KOLFinder() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+        <div className="flex flex-wrap gap-1.5">
+          <span className="text-xs text-slate-400 self-center mr-1">Quick search:</span>
+          {["NSCLC pembrolizumab", "Alzheimer's lecanemab", "Type 2 Diabetes", "CAR-T therapy", "Crohn's disease"].map(ex => (
+            <button
+              key={ex}
+              onClick={() => setCondition(ex)}
+              className="text-xs px-2.5 py-1 rounded-full bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 transition-colors"
+            >{ex}</button>
+          ))}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-1.5">Disease / Therapeutic Area <span className="text-red-500">*</span></label>

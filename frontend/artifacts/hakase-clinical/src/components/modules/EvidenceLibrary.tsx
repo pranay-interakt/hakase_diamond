@@ -63,6 +63,17 @@ export default function EvidenceLibrary() {
         <p className="text-sm text-slate-500">Search 36M+ articles in PubMed — automatically classified by evidence level</p>
       </div>
 
+      <div className="flex flex-wrap gap-1.5 mb-1">
+        <span className="text-xs text-slate-400 self-center mr-1">Quick search:</span>
+        {["Non-small cell lung cancer", "Type 2 Diabetes", "Alzheimer's disease", "Colorectal cancer", "Psoriasis"].map(ex => (
+          <button
+            key={ex}
+            onClick={() => setCondition(ex)}
+            className="text-xs px-2.5 py-1 rounded-full bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-600 transition-colors"
+          >{ex}</button>
+        ))}
+      </div>
+
       <div className="flex gap-2 flex-col sm:flex-row">
         <Input
           placeholder="Condition / Indication (required)"

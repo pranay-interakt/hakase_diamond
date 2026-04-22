@@ -50,11 +50,48 @@ const severityColor: Record<string, string> = {
   info: "text-blue-600 bg-blue-50 border-blue-200",
 };
 
+const SAMPLE_PROTOCOL = `PROTOCOL TITLE: A Phase 2 Randomized Controlled Trial of Pembrolizumab Plus Chemotherapy in Advanced Non-Small Cell Lung Cancer (NSCLC)
+
+PROTOCOL NUMBER: HKS-2025-001
+NCT ID: NCT02578680
+PHASE: Phase 2
+SPONSOR: Hakase Therapeutics, Inc.
+
+STUDY OBJECTIVES:
+Primary Objective: To evaluate progression-free survival (PFS) of pembrolizumab plus carboplatin/pemetrexed versus placebo plus chemotherapy.
+Secondary Objectives: Overall survival (OS), objective response rate (ORR), duration of response (DoR), safety and tolerability.
+
+STUDY DESIGN:
+This is a randomized, double-blind, placebo-controlled, multicenter Phase 2 study. Approximately 150 patients will be enrolled. Randomization will be 2:1 (pembrolizumab: placebo). Treatment will continue until disease progression, unacceptable toxicity, or 35 cycles.
+
+ELIGIBILITY CRITERIA:
+Inclusion:
+- Histologically or cytologically confirmed Stage IIIB/IV NSCLC
+- No prior systemic treatment for advanced disease
+- ECOG Performance Status 0 or 1
+- Adequate organ function (hepatic, renal, hematologic)
+- Age ≥ 18 years
+
+Exclusion:
+- Active autoimmune disease requiring systemic treatment
+- Prior checkpoint inhibitor therapy
+- Active CNS metastases
+- Pregnancy or breastfeeding
+
+ENDPOINTS:
+Primary endpoint: Progression-free survival (PFS) per RECIST v1.1 by blinded independent central review
+Secondary endpoints: Overall survival (OS), ORR, DoR, safety (CTCAE v5.0)
+
+TARGET ENROLLMENT: 150 patients across 25 sites in the United States and Europe
+ESTIMATED DURATION: 36 months (12 months accrual, 24 months follow-up)`;
+
 export default function ProtocolStudio() {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
+  const [inputMode, setInputMode] = useState<"upload" | "text">("upload");
+  const [textInput, setTextInput] = useState("");
   const [tab, setTab] = useState<TabId>("analysis");
   const [expandedIssue, setExpandedIssue] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -92,8 +129,6 @@ export default function ProtocolStudio() {
       setResult(data);
       setSimulatedData(data.parsed);
       setTab("analysis");
-      
-      // Seed suggested amendments based on issues
       if (data.compliance?.issues) {
         setSuggestedAmendments(data.compliance.issues.map((iss: any) => ({
           id: iss.id,
@@ -105,6 +140,31 @@ export default function ProtocolStudio() {
       }
     } catch (e: any) {
       setError(e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleTextAnalyze = async () => {
+    if (!textInput.trim()) return;
+    setUploading(true);
+    setError("");
+    try {
+      const data = await analyzeProtocolText({ text: textInput.trim() });
+      setResult(data);
+      setSimulatedData(data.parsed);
+      setTab("analysis");
+      if (data.compliance?.issues) {
+        setSuggestedAmendments(data.compliance.issues.map((iss: any) => ({
+          id: iss.id,
+          title: `Fix: ${iss.rule}`,
+          rationale: iss.recommendation,
+          impact: "+5% Compliance",
+          auto: true
+        })));
+      }
+    } catch (e: any) {
+      setError(e.message || "Analysis failed");
     } finally {
       setUploading(false);
     }
@@ -262,40 +322,108 @@ export default function ProtocolStudio() {
         <div>
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Protocol Studio</h2>
           <p className="text-sm text-slate-500">
-            Upload your protocol PDF for compliance checking, real-world outcome strategies, site recommendations, KOL discovery, and live amendment impact analysis — all powered by live public data.
+            Analyze any clinical protocol — upload a PDF or paste the text. Get compliance scoring, outcome strategies, site recommendations, KOL discovery, and live amendment simulation.
           </p>
         </div>
-        <div
-          onDragOver={e => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-          className={`border-2 border-dashed rounded-2xl p-14 text-center transition-all cursor-pointer ${dragging ? "border-blue-400 bg-blue-50" : "border-slate-300 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/30"}`}
-        >
-          <label className="cursor-pointer block">
-            <input type="file" accept=".pdf" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
-            {uploading ? (
-              <div className="space-y-3">
-                <Loader2 className="h-10 w-10 mx-auto text-blue-500 animate-spin" />
-                <p className="text-sm text-blue-600 font-medium">Analyzing protocol…</p>
-                <p className="text-xs text-slate-400">Extracting entities · Checking compliance · Finding similar trials</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <Upload className="h-10 w-10 mx-auto text-slate-300" />
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Drop protocol PDF here or click to upload</p>
-                  <p className="text-xs text-slate-400 mt-1">PDF only · Max 50 MB</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={e => e.preventDefault()}>Browse Files</Button>
-              </div>
-            )}
-          </label>
+
+        {/* Mode toggle */}
+        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit">
+          {[
+            { id: "upload", label: "Upload PDF", icon: <Upload className="h-3.5 w-3.5" /> },
+            { id: "text", label: "Paste Text", icon: <FileText className="h-3.5 w-3.5" /> },
+          ].map(m => (
+            <button
+              key={m.id}
+              onClick={() => setInputMode(m.id as "upload" | "text")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${inputMode === m.id ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              {m.icon}{m.label}
+            </button>
+          ))}
         </div>
+
+        {/* Upload mode */}
+        {inputMode === "upload" && (
+          <div
+            onDragOver={e => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+            className={`border-2 border-dashed rounded-2xl p-14 text-center transition-all cursor-pointer ${dragging ? "border-blue-400 bg-blue-50" : "border-slate-300 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/30"}`}
+          >
+            <label className="cursor-pointer block">
+              <input type="file" accept=".pdf" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+              {uploading ? (
+                <div className="space-y-3">
+                  <Loader2 className="h-10 w-10 mx-auto text-blue-500 animate-spin" />
+                  <p className="text-sm text-blue-600 font-medium">Analyzing protocol…</p>
+                  <p className="text-xs text-slate-400">Extracting entities · Checking compliance · Finding similar trials</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Upload className="h-10 w-10 mx-auto text-slate-300" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-700">Drop protocol PDF here or click to upload</p>
+                    <p className="text-xs text-slate-400 mt-1">PDF only · Max 50 MB</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={e => e.preventDefault()}>Browse Files</Button>
+                </div>
+              )}
+            </label>
+          </div>
+        )}
+
+        {/* Text paste mode */}
+        {inputMode === "text" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-slate-500">Paste your protocol text below, or try the sample NSCLC Phase 2 protocol.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setTextInput(SAMPLE_PROTOCOL)}
+                className="text-xs h-7"
+              >
+                <Sparkles className="h-3 w-3 mr-1.5" />Try Sample Protocol
+              </Button>
+            </div>
+            <textarea
+              className="w-full border border-slate-200 rounded-xl p-4 text-sm font-mono text-slate-700 bg-slate-50 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={14}
+              placeholder="Paste your clinical protocol text here…
+
+PROTOCOL TITLE: ...
+PHASE: ...
+ELIGIBILITY CRITERIA: ...
+PRIMARY ENDPOINTS: ..."
+              value={textInput}
+              onChange={e => setTextInput(e.target.value)}
+            />
+            <Button
+              className="w-full"
+              onClick={handleTextAnalyze}
+              disabled={uploading || !textInput.trim()}
+            >
+              {uploading ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" />Analyzing protocol…</>
+              ) : (
+                <><Database className="h-4 w-4 mr-2" />Analyze Protocol</>
+              )}
+            </Button>
+          </div>
+        )}
+
         {error && (
           <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3 border border-red-200">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />{error}
           </div>
         )}
+
+        {/* Feature chips */}
+        <div className="flex flex-wrap gap-2 pt-1">
+          {["Compliance Scoring", "ICH E6/E9 Validation", "ClinicalTrials.gov Benchmarks", "Site Recommendations", "KOL Discovery", "Amendment Simulation"].map(f => (
+            <span key={f} className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">{f}</span>
+          ))}
+        </div>
       </div>
     );
   }

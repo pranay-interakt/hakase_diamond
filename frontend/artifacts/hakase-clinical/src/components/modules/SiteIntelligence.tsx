@@ -37,6 +37,16 @@ export default function SiteIntelligence() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+        <div className="flex flex-wrap gap-1.5 mb-1">
+          <span className="text-xs text-slate-400 self-center mr-1">Quick search:</span>
+          {["NSCLC", "Type 2 Diabetes", "Alzheimer's disease", "Breast cancer", "Multiple myeloma"].map(ex => (
+            <button
+              key={ex}
+              onClick={() => setCondition(ex)}
+              className="text-xs px-2.5 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 transition-colors"
+            >{ex}</button>
+          ))}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-1">Condition *</label>

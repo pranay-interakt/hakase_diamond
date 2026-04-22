@@ -58,6 +58,16 @@ export default function TrialExplorer({ onSelectTrial }: { onSelectTrial?: (nctI
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+        <div className="flex flex-wrap gap-1.5 pb-1">
+          <span className="text-xs text-slate-400 self-center mr-1">Quick search:</span>
+          {["Lung cancer pembrolizumab", "Type 2 Diabetes GLP-1", "Alzheimer's lecanemab", "CAR-T lymphoma", "mRNA vaccine"].map(ex => (
+            <button
+              key={ex}
+              onClick={() => { setQuery(ex); }}
+              className="text-xs px-2.5 py-1 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 transition-colors"
+            >{ex}</button>
+          ))}
+        </div>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
