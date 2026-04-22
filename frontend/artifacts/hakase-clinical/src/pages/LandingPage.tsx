@@ -277,11 +277,16 @@ export default function LandingPage() {
             color: "#3a3a3a",
           }}
         >
-          {["About", "Modules", "Research", "Contact"].map((item) => (
+          {(["About", "Modules", "Research", "Contact"] as const).map((item) => (
             <motion.span
               key={item}
               whileHover={{ color: "#0a0a0a" }}
               style={{ cursor: "pointer", transition: "color 0.2s" }}
+              onClick={() => {
+                document
+                  .getElementById(item.toLowerCase())
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
             >
               {item}
             </motion.span>
@@ -706,6 +711,7 @@ export default function LandingPage() {
 
       {/* ── Dashboard Preview ──────────────────────────────────────────────── */}
       <section
+        id="research"
         style={{
           padding: "80px 64px 100px",
           background: "#f5f3ef",
@@ -958,7 +964,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── How We Work ────────────────────────────────────────────────────── */}
-      <section style={{ padding: "100px 64px", background: "#faf9f7" }}>
+      <section id="about" style={{ padding: "100px 64px", background: "#faf9f7" }}>
         <Reveal>
           <div style={{ marginBottom: 64 }}>
             <span
@@ -1061,7 +1067,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Modules / Features ─────────────────────────────────────────────── */}
-      <section style={{ padding: "0 64px 100px", background: "#faf9f7" }}>
+      <section id="modules" style={{ padding: "0 64px 100px", background: "#faf9f7" }}>
         <Reveal>
           <div style={{ marginBottom: 56 }}>
             <span
@@ -1159,6 +1165,7 @@ export default function LandingPage() {
 
       {/* ── Full-bleed CTA ─────────────────────────────────────────────────── */}
       <section
+        id="contact"
         style={{
           position: "relative",
           overflow: "hidden",
