@@ -673,56 +673,56 @@ async def stage3_site_selection(body: Stage3Input):
     # Extract and flatten all locations
     raw_locs = []
     for trial in similar:
-        loc_count = trial.get("locationCount", 0)
-        if loc_count > 0:
-            countries = trial.get("countries", [])
-            for c in countries:
-                raw_locs.append({
-                    "facility": f"Site in {c}",
-                    "country": c,
-                    "city": "",
-                    "status": trial.get("status", ""),
-                    "trialCount": loc_count,
-                    "completedTrials": 1 if trial.get("status") == "COMPLETED" else 0,
-                    "activeTrials": 1 if trial.get("status") in ("RECRUITING", "ACTIVE_NOT_RECRUITING") else 0,
-                    "enrollmentCount": trial.get("enrollmentCount"),
-                    "startDate": trial.get("startDate", ""),
-                    "completionDate": trial.get("completionDate", ""),
-                    "locationCount": max(1, loc_count),
-                })
+        locs = trial.get("locations", [])
+        for loc in locs:
+            raw_locs.append({
+                "facility": loc.get("facility", "Unknown Facility"),
+                "country": loc.get("country", ""),
+                "city": loc.get("city", ""),
+                "state": loc.get("state", ""),
+                "status": loc.get("status") or trial.get("status", ""),
+                "trialCount": 1,
+                "completedTrials": 1 if trial.get("status") == "COMPLETED" else 0,
+                "activeTrials": 1 if trial.get("status") in ("RECRUITING", "ACTIVE_NOT_RECRUITING") else 0,
+                "enrollmentCount": trial.get("enrollmentCount"),
+                "startDate": trial.get("startDate", ""),
+                "completionDate": trial.get("completionDate", ""),
+                "locationCount": max(1, trial.get("locationCount", 1)),
+            })
 
-    # Country aggregation for top sites
-    country_agg: dict[str, dict] = {}
+    # Site aggregation for top sites
+    site_agg: dict[str, dict] = {}
     for loc in raw_locs:
-        c = loc["country"]
-        if c not in country_agg:
-            country_agg[c] = {
-                "facility": f"Sites in {c}",
-                "country": c,
-                "city": "",
-                "status": "RECRUITING",
+        key = f"{loc['facility']}|{loc['city']}|{loc['country']}"
+        if key not in site_agg:
+            site_agg[key] = {
+                "facility": loc["facility"],
+                "country": loc["country"],
+                "city": loc["city"],
+                "state": loc["state"],
+                "status": loc["status"],
                 "trialCount": 0,
                 "completedTrials": 0,
                 "activeTrials": 0,
+                "enrollmentCount": loc.get("enrollmentCount"),
+                "startDate": loc.get("startDate", ""),
+                "completionDate": loc.get("completionDate", ""),
+                "locationCount": loc.get("locationCount", 1),
             }
-        country_agg[c]["trialCount"] += loc.get("trialCount", 1)
-        country_agg[c]["completedTrials"] += loc.get("completedTrials", 0)
-        country_agg[c]["activeTrials"] += loc.get("activeTrials", 0)
-        if loc.get("enrollmentCount"):
-            country_agg[c]["enrollmentCount"] = loc.get("enrollmentCount")
-        if loc.get("startDate"):
-            country_agg[c]["startDate"] = loc.get("startDate")
-        if loc.get("completionDate"):
-            country_agg[c]["completionDate"] = loc.get("completionDate")
-        if loc.get("locationCount"):
-            country_agg[c]["locationCount"] = loc.get("locationCount")
+        site_agg[key]["trialCount"] += loc.get("trialCount", 1)
+        site_agg[key]["completedTrials"] += loc.get("completedTrials", 0)
+        site_agg[key]["activeTrials"] += loc.get("activeTrials", 0)
 
-    aggregated_locs = list(country_agg.values())
-    user_loc = body.preferred_countries[0] if body.preferred_countries else None
-    ranked_sites = analysis.estimate_site_performance(aggregated_locs, user_location=user_loc)
+    aggregated_locs = list(site_agg.values())
+    ranked_sites = analysis.estimate_site_performance(aggregated_locs, preferred_countries=body.preferred_countries)
 
     # Shannon diversity index for geographic risk
-    country_trial_counts = {c: v["trialCount"] for c, v in country_agg.items()}
+    country_trial_counts = {}
+    for loc in raw_locs:
+        c = loc["country"]
+        if c:
+            country_trial_counts[c] = country_trial_counts.get(c, 0) + loc.get("trialCount", 1)
+
     geo_diversity = compute_geographic_diversity(country_trial_counts)
 
     # Site activation timeline (industry benchmarks: IQVIA, Medidata)
@@ -761,11 +761,11 @@ async def stage3_site_selection(body: Stage3Input):
             "priority": "MEDIUM",
             "recommendation": f"Shannon diversity H'={geo_diversity.get('shannonIndex', 0)} — high concentration risk. {geo_diversity.get('topCountry', '')} hosts {geo_diversity.get('topCountryShare', 0)}% of trials. Diversify across ≥5 countries.",
         })
-    if user_loc and user_loc not in [s["country"] for s in ranked_sites[:10]]:
+    if body.preferred_countries and not any(c in [s["country"] for s in ranked_sites[:10]] for c in body.preferred_countries):
         optimizations.append({
             "type": "preferred_country",
             "priority": "LOW",
-            "recommendation": f"Your preferred country ({user_loc}) is not in the top 10 ranked sites for this indication. Consider supplementing with high-performing countries from the ranking.",
+            "recommendation": f"Your preferred countries ({', '.join(body.preferred_countries)}) are not in the top 10 ranked sites for this indication. Consider supplementing with high-performing countries from the ranking.",
         })
 
     return {

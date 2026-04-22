@@ -201,43 +201,76 @@ function Stage1Results({ data }: { data: any }) {
 function Stage2Results({ data }: { data: any }) {
   const color = "#10b981";
   const sites = data.rankedSites || [];
+  const topScores = sites.slice(0, 5).map((s: any) => s.score ?? s.compositeScore ?? 0);
+  const avgTop5 = topScores.length > 0 ? Math.round(topScores.reduce((a: number, b: number) => a + b, 0) / topScores.length) : 0;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
         <KPI label="Sites Identified" value={sites.length} color={color} sub="Globally ranked" />
-        <KPI label="Avg Top-5 Score" value={sites.length > 0 ? Math.round(sites.slice(0, 5).reduce((s: number, x: any) => s + (x.compositeScore || 0), 0) / Math.min(5, sites.length)) : "—"} unit="/100" color="#06b6d4" sub="Top 5 sites" />
+        <KPI label="Avg Top-5 Score" value={avgTop5 || "—"} unit={avgTop5 ? "/100" : ""} color="#06b6d4" sub="Top 5 sites" />
         <KPI label="Countries" value={[...new Set(sites.map((s: any) => s.country))].length} color="#f59e0b" sub="Geographic spread" />
       </div>
       {sites.length > 0 && (
         <Card title="Site Rankings" icon={<MapPin className="h-4 w-4" />} color={color}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
-                {["Rank", "Institution", "Country", "Score", "Startup", "Expected Pts"].map(h => (
-                  <th key={h} style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textAlign: "left", padding: "0 8px 8px 0" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sites.slice(0, 10).map((s: any, i: number) => (
-                <tr key={i} style={{ borderBottom: "1px solid #f8fafc", background: i === 0 ? rgba(color, 0.04) : "transparent" }}>
-                  <td style={{ fontSize: 12, fontWeight: 900, color: i === 0 ? color : "#94a3b8", padding: "7px 8px 7px 0" }}>#{i + 1}</td>
-                  <td style={{ fontSize: 11, color: "#334155", padding: "7px 8px", maxWidth: 180 }}>{(s.institution || s.name || "—").slice(0, 28)}</td>
-                  <td style={{ fontSize: 10, color: "#64748b", padding: "7px 8px" }}>{s.country || "—"}</td>
-                  <td style={{ padding: "7px 8px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 12, fontWeight: 800, color }}>{Math.round(s.compositeScore || 0)}</span>
-                      <div style={{ flex: 1, height: 4, background: "#f1f5f9", borderRadius: 999, overflow: "hidden", minWidth: 40 }}>
-                        <div style={{ height: "100%", width: `${s.compositeScore || 0}%`, background: color, borderRadius: 999 }} />
-                      </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {sites.slice(0, 12).map((s: any, i: number) => {
+              const score = Math.round(s.score ?? s.compositeScore ?? 0);
+              const name = s.facility || s.institution || s.name || "Unknown Site";
+              const breakdown = s.rankingBreakdown || {};
+              const grounding: string[] = s.grounding || [];
+              const sc = score >= 75 ? "#10b981" : score >= 50 ? "#f59e0b" : "#ef4444";
+              return (
+                <div key={i} style={{ padding: "16px 18px", borderRadius: 12, background: i === 0 ? rgba(color, 0.04) : "#fafafa", border: `1px solid ${i === 0 ? rgba(color, 0.2) : "#f1f5f9"}` }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                    <div style={{ flexShrink: 0, textAlign: "center", minWidth: 46 }}>
+                      <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 700 }}>#{i + 1}</div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: sc, lineHeight: 1 }}>{score}</div>
+                      <div style={{ fontSize: 10, color: sc, fontWeight: 600 }}>/100</div>
                     </div>
-                  </td>
-                  <td style={{ fontSize: 10, color: "#64748b", padding: "7px 8px" }}>{s.startupWeeks || s.activationWeeks || "—"} wk</td>
-                  <td style={{ fontSize: 10, color: "#64748b", padding: "7px 0" }}>{s.expectedPatients || s.expectedEnrollment || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginBottom: 3 }}>{name.slice(0, 50)}</div>
+                      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
+                        {[s.city, s.country].filter(Boolean).join(", ")}
+                        {s.enrollmentRate ? ` · ${s.enrollmentRate} pts/mo` : ""}
+                        {s.trialCount ? ` · ${s.trialCount} trials` : ""}
+                      </div>
+                      {/* Factor mini-bars */}
+                      {Object.keys(breakdown).length > 0 && (
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px", marginBottom: grounding.length > 0 ? 8 : 0 }}>
+                          {Object.entries(breakdown).map(([k, v]: [string, any]) => (
+                            <div key={k}>
+                              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#94a3b8", marginBottom: 3 }}>
+                                <span>{k.replace(/([A-Z])/g, " $1").trim()}</span>
+                                <span style={{ fontWeight: 700, color }}>{Number(v).toFixed(1)}</span>
+                              </div>
+                              <div style={{ height: 4, borderRadius: 999, background: "#e2e8f0", overflow: "hidden" }}>
+                                <div style={{ height: "100%", width: `${Math.min(100, (Number(v) / 30) * 100)}%`, background: color, borderRadius: 999 }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Grounding */}
+                      {grounding.length > 0 && (
+                        <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "#16a34a", marginBottom: 4 }}>Why recommended</div>
+                          {grounding.slice(0, 2).map((r: string, ri: number) => (
+                            <div key={ri} style={{ fontSize: 12, color: "#334155", lineHeight: 1.6 }}>• {r}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ flexShrink: 0, textAlign: "right", fontSize: 12, color: "#94a3b8", lineHeight: 1.5 }}>
+                      {s.startupWeeks && <div>{s.startupWeeks}w startup</div>}
+                      {s.expectedPatients && <div>{s.expectedPatients} pts/yr</div>}
+                      {s.recruitingNow && <div style={{ color: "#16a34a", fontWeight: 700 }}>● Recruiting</div>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </Card>
       )}
       {(data.optimizations || []).length > 0 && (
@@ -411,12 +444,12 @@ function GaugeArc({ value, color, size = 120 }: { value: number; color: string; 
 
 function Stage6Results({ data }: { data: any }) {
   const color = "#6366f1";
-  const ml = data.mlPrediction || {};
+  const out = data.outcomePrediction || {};
+  const ml = out.fullAnalysis || data.mlPrediction || {};
   const probs = ml.stageProbabilities || data.stageProbabilities || {};
-  const ensemble = ml.ensembleResult || {};
-  const successProb = ensemble.successProbability ?? ml.successProbability ?? data.overallSuccessProbability ?? 0;
-  const gonogo = data.goNoGoRecommendation || ml.goNoGoRecommendation || {};
-  const isGo = gonogo.recommendation === "GO" || successProb >= 50;
+  const successProb = out.goProbability ?? data.overallSuccessProbability ?? 0;
+  const decision = out.goDecision ?? (successProb >= 50 ? "GO" : "NO-GO");
+  const isGo = decision.includes("GO") && !decision.includes("NO-GO");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -426,8 +459,11 @@ function Stage6Results({ data }: { data: any }) {
           <span style={{ fontSize: 24 }}>{isGo ? "✅" : "❌"}</span>
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: isGo ? "#16a34a" : "#dc2626", letterSpacing: "-0.02em" }}>{gonogo.recommendation || (isGo ? "GO" : "NO-GO")}</div>
-          <div style={{ fontSize: 13, color: "#64748b", marginTop: 4, lineHeight: 1.5 }}>{gonogo.reasoning || `ML ensemble predicts ${Math.round(successProb)}% probability of trial success.`}</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: isGo ? "#16a34a" : "#dc2626", letterSpacing: "-0.02em" }}>{decision}</div>
+          <div style={{ fontSize: 13, color: "#64748b", marginTop: 4, lineHeight: 1.5 }}>
+            ML ensemble predicts {Math.round(successProb)}% probability of trial success. 
+            {out.mlMethod ? ` Model: ${out.mlMethod}.` : ""}
+          </div>
         </div>
         <div style={{ textAlign: "center", flexShrink: 0 }}>
           <GaugeArc value={Math.round(successProb)} color={isGo ? "#10b981" : "#ef4444"} />
@@ -516,9 +552,11 @@ function EmptyState({ stage, config }: { stage: Stage; config: StageConfig }) {
       </motion.div>
       <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>Stage {stage} · {config.label}</div>
       <div style={{ fontSize: 12, color: "#64748b", textAlign: "center", maxWidth: 260, lineHeight: 1.6, marginBottom: 14 }}>{config.description}</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#94a3b8" }}>
-        <ChevronRight className="h-3.5 w-3.5" style={{ color: config.color }} />
-        <span>Enter inputs and click <span style={{ color: config.color, fontWeight: 700 }}>Run All Stages</span></span>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#94a3b8" }}>
+          <ChevronRight className="h-3.5 w-3.5" style={{ color: config.color }} />
+          <span>Enter inputs, then run all stages or this stage only</span>
+        </div>
       </div>
     </div>
   );
@@ -839,11 +877,32 @@ export default function ClinicalTrialHub() {
 
           {/* Actions */}
           <div style={{ padding: "12px 16px", borderTop: "1px solid #f1f5f9", display: "flex", flexDirection: "column", gap: 8 }}>
+            {/* Run All */}
             <motion.button onClick={runAllStages} disabled={isRunningAll || !inputs.condition}
               whileHover={!isRunningAll ? { scale: 1.02 } : {}} whileTap={!isRunningAll ? { scale: 0.97 } : {}}
               style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "11px", borderRadius: 12, background: isRunningAll ? "#f1f5f9" : "linear-gradient(135deg, #6366f1, #3b82f6)", color: isRunningAll ? "#94a3b8" : "#fff", fontSize: 13, fontWeight: 700, border: "none", cursor: isRunningAll || !inputs.condition ? "not-allowed" : "pointer", boxShadow: isRunningAll ? "none" : "0 4px 16px rgba(99,102,241,0.25)" }}>
               {isRunningAll ? <><Loader2 className="h-4 w-4 animate-spin" /> Running all stages…</> : <><Play className="h-4 w-4" /> Run All 6 Stages</>}
             </motion.button>
+
+            {/* Run active stage only */}
+            {!isRunningAll && (
+              <motion.button
+                onClick={() => runSingle(activeStage)}
+                disabled={!inputs.condition}
+                whileHover={inputs.condition ? { scale: 1.02 } : {}}
+                whileTap={inputs.condition ? { scale: 0.97 } : {}}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px",
+                  borderRadius: 12, fontSize: 12, fontWeight: 700, border: `1.5px solid ${rgba(config.color, 0.4)}`,
+                  background: rgba(config.color, 0.07), color: config.color,
+                  cursor: inputs.condition ? "pointer" : "not-allowed",
+                  opacity: inputs.condition ? 1 : 0.5,
+                }}>
+                <Play className="h-3.5 w-3.5" /> Run Stage {activeStage} Only
+              </motion.button>
+            )}
+
+            {/* Re-run / Next */}
             {!isRunningAll && result && (
               <button onClick={() => runSingle(activeStage)}
                 style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "9px", borderRadius: 12, background: "#f8fafc", color: "#64748b", fontSize: 12, fontWeight: 600, border: "1px solid #e2e8f0", cursor: "pointer" }}>

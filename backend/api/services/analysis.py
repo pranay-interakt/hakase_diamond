@@ -376,14 +376,10 @@ def _histogram(data: list, bins: int) -> list[dict]:
 # Site Performance — fully data-driven from observed trial activity
 # ─────────────────────────────────────────────────────────
 
-def estimate_site_performance(ctgov_locations: list[dict], user_location: Optional[str] = None) -> list[dict]:
+def estimate_site_performance(ctgov_locations: list[dict], preferred_countries: Optional[list[str]] = None) -> list[dict]:
     """
     Enhanced Site Ranking Engine (Hakase-PyTrial Hybrid)
     Prioritizes: PyTrial Ranking Methodology, Location Relevance, and Site Experience.
-    
-    1. PyTrial Score (40%): Simulation of recruitment efficiency and historical reliability.
-    2. Experience Score (40%): Based on total/completed trials and facility maturity.
-    3. Location/Regional Score (20%): Geographic density and regional performance benchmarks.
     """
     import math
     import statistics
@@ -416,43 +412,59 @@ def estimate_site_performance(ctgov_locations: list[dict], user_location: Option
     }
     global_median = statistics.median(regional_benchmarks.values()) if regional_benchmarks else 1.5
 
+    # Filter by preferred countries if provided
+    if preferred_countries:
+        valid_countries = [c.lower() for c in preferred_countries]
+        filtered_locs = [loc for loc in ctgov_locations if loc.get("country", "").lower() in valid_countries]
+        if filtered_locs:
+            ctgov_locations = filtered_locs
+
     results = []
     for loc in ctgov_locations:
-        # A. EXPERIENCE SCORE (0-40 pts)
+        grounding = []
+        
+        # A. EXPERIENCE SCORE (0-30 pts)
         trial_count = loc.get("trialCount", 0)
         completed = loc.get("completedTrials", 0)
         active = loc.get("activeTrials", 0)
         
-        # Maturity: log-scale of total trials (20 pts)
-        maturity = min(20, math.log1p(trial_count) * 5)
-        # Reliability: completion ratio (20 pts)
-        reliability = (completed / trial_count * 20) if trial_count > 0 else 10
+        # Maturity
+        maturity = min(15, math.log1p(trial_count) * 4)
+        # Reliability
+        reliability = (completed / trial_count * 15) if trial_count > 0 else 7.5
         exp_score = maturity + reliability
+        if trial_count >= 5:
+            grounding.append(f"Highly experienced site: Managed {trial_count} trials ({completed} completed).")
+        elif trial_count > 0:
+            grounding.append(f"Site has managed {trial_count} relevant trials.")
 
-        # B. PYTRIAL RANKING SIMULATION (0-40 pts)
-        # 1. Recruitment Efficiency (20 pts): Observed rate vs regional benchmark
+        # B. RECRUITMENT EFFICIENCY (0-30 pts)
         fac_rate = _compute_facility_rate(loc) or regional_benchmarks.get(loc.get("country"), global_median)
         expected_rate = regional_benchmarks.get(loc.get("country"), global_median)
         efficiency_ratio = fac_rate / expected_rate if expected_rate > 0 else 1.0
-        recruitment_pts = min(20, efficiency_ratio * 10)
-        
-        # 2. Operational Stability (20 pts): Active/Total ratio + status bonus
+        recruitment_pts = min(30, efficiency_ratio * 15)
+        if fac_rate > expected_rate:
+            grounding.append(f"Outperforms regional average recruitment ({round(fac_rate, 1)} vs {round(expected_rate, 1)} pts/mo).")
+        else:
+            grounding.append(f"Recruitment aligns with regional benchmark ({round(fac_rate, 1)} pts/mo).")
+
+        # C. OPERATIONAL STABILITY (0-20 pts)
         stability_ratio = (active + completed) / trial_count if trial_count > 0 else 0.5
         stability_pts = stability_ratio * 15
         if loc.get("status") == "RECRUITING":
             stability_pts += 5
-        pytrial_score = recruitment_pts + stability_pts
+            grounding.append("Site is currently active and recruiting for similar trials.")
 
-        # C. LOCATION RELEVANCE (0-20 pts)
-        # For now, we use regional density as a proxy for infrastructure support/patient access
+        # D. LOCATION RELEVANCE (0-20 pts)
         regional_density = country_stats.get(loc.get("country", ""), {}).get("total", 0)
         location_pts = min(20, math.log1p(regional_density) * 4)
         
-        # Adjust if user_location is provided (exact match priority)
-        if user_location and user_location.lower() in loc.get("country", "").lower():
+        # Priority boost if explicitly preferred
+        if preferred_countries and loc.get("country", "").lower() in [c.lower() for c in preferred_countries]:
             location_pts = 20
+            grounding.append("Direct match for your preferred geographic region.")
 
-        total_score = exp_score + pytrial_score + location_pts
+        total_score = exp_score + recruitment_pts + stability_pts + location_pts
         
         results.append({
             "facility": loc.get("facility", "Unknown Facility"),
@@ -468,13 +480,28 @@ def estimate_site_performance(ctgov_locations: list[dict], user_location: Option
             "score": round(min(100, total_score), 1),
             "rankingBreakdown": {
                 "experience": round(exp_score, 1),
-                "pytrialMethodology": round(pytrial_score, 1),
+                "recruitmentEfficiency": round(recruitment_pts, 1),
+                "operationalStability": round(stability_pts, 1),
                 "locationRelevance": round(location_pts, 1)
-            }
+            },
+            "grounding": grounding,
+            "startupWeeks": 5 if loc.get("country") == "United States" else 8,
+            "expectedPatients": round(fac_rate * 12)
         })
 
-    return sorted(results, key=lambda x: x["score"], reverse=True)
+    sorted_results = sorted(results, key=lambda x: x["score"], reverse=True)
 
+    # Deduplicate by facility name to ensure diverse recommendations
+    seen_facilities = set()
+    deduped_results = []
+    for r in sorted_results:
+        # Normalize name to catch slight variations
+        fname = r["facility"].strip().lower()
+        if fname not in seen_facilities:
+            seen_facilities.add(fname)
+            deduped_results.append(r)
+            
+    return deduped_results
 
 
 def _compute_facility_rate(loc: dict) -> Optional[float]:

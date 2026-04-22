@@ -108,6 +108,7 @@ def extract_core(study: dict) -> dict:
         "maxAge": elig_mod.get("maximumAge", ""),
         "sex": elig_mod.get("sex", ""),
         "countries": countries,
+        "locations": locations,
         "locationCount": len(locations),
         "sponsorName": sponsor_mod.get("leadSponsor", {}).get("name", ""),
         "sponsorClass": sponsor_mod.get("leadSponsor", {}).get("class", ""),

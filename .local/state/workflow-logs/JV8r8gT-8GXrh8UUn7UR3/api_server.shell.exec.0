@@ -1,0 +1,23 @@
+[32mINFO[0m:     Started server process [[36m2841[0m]
+[32mINFO[0m:     Waiting for application startup.
+[32mINFO[0m:     Application startup complete.
+[32mINFO[0m:     Uvicorn running on [1mhttp://0.0.0.0:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     127.0.0.1:48904 - "[1mPOST /api/protocol/analyze-text HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:46098 - "[1mGET /api/protocol/strategies?condition=NSCLC&phase=PHASE2 HTTP/1.1[0m" [32m200 OK[0m
+Consider using the pymupdf_layout package for a greatly improved page layout analysis.
+[32mINFO[0m:     10.81.10.152:0 - "[1mPOST /api/protocol/analyze-upload HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.10.152:0 - "[1mGET /api/sites/recommend?condition=Zhongshan+Road%2C+Guangzhou%2C+China&limit=40&phase=PHASE2 HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.10.152:0 - "[1mGET /api/protocol/strategies?condition=Zhongshan+Road%2C+Guangzhou%2C+China&limit=30&phase=PHASE2 HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.10.152:0 - "[1mGET /api/kols/find?condition=Zhongshan+Road%2C+Guangzhou%2C+China&limit=20 HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.10.152:0 - "[1mPOST /api/protocol/analyze-upload HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:40506 - "[1mPOST /api/protocol/analyze-text HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.7.78:0 - "[1mGET /api/protocol/strategies?condition=Zhongshan+Road%2C+Guangzhou%2C+China&limit=30&phase=PHASE2 HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.7.78:0 - "[1mGET /api/sites/recommend?condition=Zhongshan+Road%2C+Guangzhou%2C+China&limit=40&phase=PHASE2 HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.7.78:0 - "[1mGET /api/kols/find?condition=Zhongshan+Road%2C+Guangzhou%2C+China&limit=20 HTTP/1.1[0m" [32m200 OK[0m
+Failed to initialize LLM: No module named 'ollama'
+[32mINFO[0m:     10.81.7.78:0 - "[1mPOST /api/trial-hub/stage1/discovery HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.7.78:0 - "[1mPOST /api/trial-hub/stage3/site-selection HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.7.78:0 - "[1mPOST /api/trial-hub/stage4/regulatory HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.7.78:0 - "[1mPOST /api/trial-hub/stage5/enrollment HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.7.78:0 - "[1mPOST /api/trial-hub/stage6/execution HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     10.81.7.78:0 - "[1mPOST /api/trial-hub/stage7/outcomes HTTP/1.1[0m" [32m200 OK[0m

@@ -71,10 +71,21 @@ export const simulateProtocolImpact = (body: Record<string, any>) =>
   request<any>("/simulation/protocol-impact", { method: "POST", body: JSON.stringify(body) });
 
 // ── Sites ─────────────────────────────────────────────────────────────────────
-export const recommendSites = (condition: string, phase?: string, countries?: string, limit = 30) => {
+export const recommendSites = (
+  condition: string,
+  phase?: string,
+  countries?: string,
+  limit = 30,
+  intervention?: string,
+  dropout_rate?: number,
+  therapeutic_area?: string,
+) => {
   const params = new URLSearchParams({ condition, limit: String(limit) });
-  if (phase) params.set("phase", phase);
-  if (countries) params.set("countries", countries);
+  if (phase)            params.set("phase", phase);
+  if (countries)        params.set("countries", countries);
+  if (intervention)     params.set("intervention", intervention);
+  if (dropout_rate !== undefined) params.set("dropout_rate", String(dropout_rate));
+  if (therapeutic_area) params.set("therapeutic_area", therapeutic_area);
   return request<any>(`/sites/recommend?${params}`);
 };
 
