@@ -446,6 +446,7 @@ function Stage6Results({ data }: { data: any }) {
   const color = "#6366f1";
   const out = data.outcomePrediction || {};
   const ml = out.fullAnalysis || data.mlPrediction || {};
+  const ensemble = data?.ensemblePrediction || {};
   const probs = ml.stageProbabilities || data.stageProbabilities || {};
   const successProb = out.goProbability ?? data.overallSuccessProbability ?? 0;
   const decision = out.goDecision ?? (successProb >= 50 ? "GO" : "NO-GO");
@@ -488,7 +489,7 @@ function Stage6Results({ data }: { data: any }) {
         </Card>
       )}
 
-      {(ensemble.modelBreakdown || ml.modelBreakdown) && (
+      {(ensemble?.modelBreakdown || ml?.modelBreakdown) && (
         <Card title="Ensemble ML Breakdown" icon={<Sparkles className="h-4 w-4" />} color={color}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {Object.entries(ensemble.modelBreakdown || ml.modelBreakdown || {}).map(([model, score]: [string, any]) => {
