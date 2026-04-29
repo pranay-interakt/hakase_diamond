@@ -134,7 +134,7 @@ export default function Dashboard() {
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, overflowY: "auto", padding: "12px 10px" }}>
+        <nav className="nav-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "12px 10px" }}>
           {navGroups.map((group, gi) => (
             <div key={gi} style={{ marginBottom: 20 }}>
               {group.label && (
