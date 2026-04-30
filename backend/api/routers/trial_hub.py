@@ -134,7 +134,12 @@ class FullSimInput(BaseModel):
 # Helpers
 # ─────────────────────────────────────────────────────────
 
-async def _fetch_similar(condition: str, phase: Optional[str], status: Optional[list[str]] = None, n: int = 50) -> list[dict]:
+async def _fetch_similar(
+    condition: str,
+    phase: Optional[str],
+    status: Optional[list[str]] = None,
+    n: int = 50
+) -> list[dict]:
     try:
         phase_list = [phase] if phase else None
         raw = await ctgov.search_studies(
@@ -143,9 +148,12 @@ async def _fetch_similar(condition: str, phase: Optional[str], status: Optional[
             status=status,
             page_size=n,
         )
-        return [ctgov.extract_core(s) for s in raw.get("studies", [])]
+        # search_studies already returns normalized dicts — return directly
+        studies = raw.get("studies", [])
+        logger.info(f"[TrialHub] _fetch_similar: {len(studies)} studies (source: {raw.get('source','?')})")
+        return studies
     except Exception as e:
-        logger.warning(f"[TrialHub] CTGov fetch failed: {e}")
+        logger.warning(f"[TrialHub] _fetch_similar failed: {e}")
         return []
 
 
@@ -668,7 +676,17 @@ async def stage3_site_selection(body: Stage3Input):
     Site selection with paginated corpus, Shannon diversity index,
     and data-derived enrollment rates per country.
     """
-    similar = await fetch_large_corpus(body.condition, body.phase, target_n=200)
+    # similar = await fetch_large_corpus(body.condition, body.phase, target_n=200)
+
+    similar = await _fetch_similar(
+    condition=body.condition,
+    phase=body.phase,
+    status=None,
+    n=50
+    )
+
+    
+    print("Total trials fetched:", len(similar))
 
     # Extract and flatten all locations
     raw_locs = []
@@ -767,6 +785,10 @@ async def stage3_site_selection(body: Stage3Input):
             "priority": "LOW",
             "recommendation": f"Your preferred countries ({', '.join(body.preferred_countries)}) are not in the top 10 ranked sites for this indication. Consider supplementing with high-performing countries from the ranking.",
         })
+
+
+    print("Final ranked sites:", len(ranked_sites))
+    print("Corpus size used:", len(similar))
 
     return {
         "stage": 3,
@@ -949,8 +971,7 @@ async def stage5_enrollment(body: Stage5Input):
     if rate <= 0:
         rate = 0.5
 
-    # Estimate screen failure ratio from eligibility complexity of similar trials
-    # Use average eligibility text from corpus
+    # Estimate screen failure ratio from eligibility complexity of similar trials. Use average eligibility text from corpus
     elig_texts = [t.get("eligibilityCriteria", "") for t in similar if t.get("eligibilityCriteria")]
     avg_elig = elig_texts[0] if elig_texts else ""
     screen_model = estimate_screen_failure_ratio(avg_elig)

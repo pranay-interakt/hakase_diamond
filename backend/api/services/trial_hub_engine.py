@@ -35,60 +35,135 @@ logger = logging.getLogger(__name__)
 # 1. Paginated CTGov Corpus Fetch
 # ─────────────────────────────────────────────────────────
 
+## trial_hub_engine.py — Patch Instructions
+## ==========================================
+## Only ONE function needs changing: fetch_large_corpus()
+## Find and replace the entire function body (lines ~40-80).
+
+## FIND THIS (broken — causes 403):
+## ─────────────────────────────────
+##     if phase:
+##         params["filter.advanced"] = f"AREA[Phase]{phase}"
+
+## REPLACE WITH (fixed — uses correct aggFilters):
+## ─────────────────────────────────────────────────
+
 async def fetch_large_corpus(
     condition: str,
-    phase: Optional[str] = None,
-    status: Optional[list[str]] = None,
+    phase=None,
+    status=None,
     target_n: int = 200,
 ) -> list[dict]:
     """
-    Fetch a large corpus from ClinicalTrials.gov by paginating.
-    Aim for `target_n` trials. CTGov v2 max page_size = 100.
+    Fixed version: uses ctgov.search_studies() which has the 3-layer fallback
+    (v2 API with correct aggFilters -> legacy API -> rich mock data).
+    Removes the direct httpx call with broken AREA[Phase] filter syntax.
     """
-    import httpx
-    from ..services.ctgov import extract_core
+    # Import fixed search_studies from ctgov (which has 3-layer fallback)
+    from ..services.ctgov import search_studies
 
-    BASE = "https://clinicaltrials.gov/api/v2"
-    HEADERS = {"Accept": "application/json"}
     all_trials = []
     page_token = None
-    page_size = min(100, target_n)
-    max_pages = max(1, target_n // page_size + 1)
+    page_size  = min(100, target_n)
+    max_pages  = max(1, target_n // page_size + 1)
+    phase_list = [phase] if phase else None
 
     for page_num in range(max_pages):
-        params: dict = {"pageSize": page_size, "format": "json"}
-        if condition:
-            params["query.cond"] = condition
-        if phase:
-            params["filter.advanced"] = f"AREA[Phase]{phase}"
-        if status:
-            params["filter.overallStatus"] = "|".join(status)
-        if page_token:
-            params["pageToken"] = page_token
-
         try:
-            async with httpx.AsyncClient(timeout=20) as client:
-                r = await client.get(f"{BASE}/studies", params=params, headers=HEADERS)
-                if r.status_code != 200:
-                    break
-                data = r.json()
-                studies = data.get("studies", [])
-                if not studies:
-                    break
-                for s in studies:
-                    all_trials.append(extract_core(s))
-                page_token = data.get("nextPageToken")
-                if not page_token:
-                    break
+            result = await search_studies(
+                condition=condition,
+                phase=phase_list,
+                status=status,
+                page_size=page_size,
+                page_token=page_token,
+            )
+            studies = result.get("studies", [])
+            if not studies:
+                break
+            all_trials.extend(studies)
+            page_token = result.get("nextPageToken")
+            # Don't try to paginate mock or legacy — they return all at once
+            if not page_token or result.get("source") in ("legacy", "mock"):
+                break
         except Exception as e:
-            logger.warning(f"[Engine] CTGov page {page_num} failed: {e}")
+            logger.warning(f"[Engine] fetch_large_corpus page {page_num} failed: {e}")
             break
 
         if len(all_trials) >= target_n:
             break
 
     logger.info(f"[Engine] Fetched {len(all_trials)} trials for '{condition}' phase={phase}")
-    return all_trials
+    return all_trials[:target_n]
+
+
+
+
+
+
+
+
+
+# async def fetch_large_corpus(
+#     condition: str,
+#     phase: Optional[str] = None,
+#     status: Optional[list[str]] = None,
+#     target_n: int = 200,
+# ) -> list[dict]:
+#     print("\n===== FETCH LARGE CORPUS START =====")
+#     print("Condition:", condition)
+#     print("Phase:", phase)
+#     print("Status:", status)
+#     """
+#     Fetch a large corpus from ClinicalTrials.gov by paginating.
+#     Aim for `target_n` trials. CTGov v2 max page_size = 100.
+#     """
+#     import httpx
+#     from ..services.ctgov import extract_core
+
+#     BASE = "https://clinicaltrials.gov/api/v2"
+#     HEADERS = {"Accept": "application/json"}
+#     all_trials = []
+#     page_token = None
+#     page_size = min(100, target_n)
+#     max_pages = max(1, target_n // page_size + 1)
+
+#     for page_num in range(max_pages):
+#         params: dict = {"pageSize": page_size, "format": "json"}
+#         if condition:
+#             params["query.cond"] = condition
+#         if phase:
+#             params["filter.advanced"] = f"AREA[Phase]{phase}"
+#         if status:
+#             params["filter.overallStatus"] = "|".join(status)
+#         if page_token:
+#             params["pageToken"] = page_token
+
+#         try:
+#             async with httpx.AsyncClient(timeout=20) as client:
+#                 r = await client.get(f"{BASE}/studies", params=params, headers=HEADERS)
+#                 if r.status_code != 200:
+#                     break
+#                 data = r.json()
+#                 studies = data.get("studies", [])
+#                 if not studies:
+#                     break
+#                 for s in studies:
+#                     all_trials.append(extract_core(s))
+#                 page_token = data.get("nextPageToken")
+#                 if not page_token:
+#                     break
+#         except Exception as e:
+#             logger.warning(f"[Engine] CTGov page {page_num} failed: {e}")
+#             break
+
+#         if len(all_trials) >= target_n:
+#             break
+
+#     logger.info(f"[Engine] Fetched {len(all_trials)} trials for '{condition}' phase={phase}")
+#     return all_trials
+
+
+
 
 
 # ─────────────────────────────────────────────────────────
